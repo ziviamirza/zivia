@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fffaf5;
+  --foreground: #2e2721;
+  --zivia-cream: #fff8f1;
+  --zivia-warm-white: #fffdf9;
+  --zivia-champagne: #f9efe2;
+  --zivia-gold-soft: rgba(180, 128, 74, 0.12);
+  --zivia-shadow-gold: 0 24px 48px -20px rgba(127, 72, 28, 0.2);
+  --zivia-shadow-soft: 0 20px 50px -30px rgba(72, 46, 25, 0.25);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-family-display: var(--font-display), ui-serif, Georgia, "Times New Roman",
+    serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.font-display {
+  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 0% 0%, #fffdf9 0, transparent 42%),
+    radial-gradient(circle at 100% 10%, #f9efe0 0, transparent 40%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background-color: rgb(254 243 199);
+  color: rgb(69 26 3);
+}
+
+@layer components {
+  .zivia-section-eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.22em] text-amber-900/60;
+  }
+
+  .zivia-section-title {
+    font-family: var(--font-family-display);
+    @apply text-[1.65rem] font-normal leading-[1.15] tracking-tight text-stone-900 sm:text-4xl sm:leading-[1.12];
+  }
+
+  .zivia-section-desc {
+    @apply mt-4 max-w-xl text-[0.9375rem] font-normal leading-[1.75] text-stone-500 sm:text-base sm:leading-relaxed;
+  }
+
+  .zivia-surface {
+    @apply rounded-[1.75rem] border border-amber-100/70 bg-[var(--zivia-warm-white)] shadow-[var(--zivia-shadow-soft)];
+  }
+
+  .zivia-panel {
+    @apply rounded-3xl border border-amber-100/70 bg-white/95 shadow-[0_20px_50px_-30px_rgba(95,63,35,0.35)];
+  }
+
+  .zivia-input {
+    @apply w-full rounded-2xl border border-amber-100 bg-white/90 px-4 py-3 text-sm text-stone-800 outline-none transition placeholder:text-stone-400 focus:border-amber-300 focus:ring-4 focus:ring-amber-100/80;
+  }
+
+  .zivia-pill {
+    @apply inline-flex items-center rounded-full border border-amber-100 bg-white/90 px-4 py-2 text-xs font-medium text-stone-600 shadow-sm transition hover:border-amber-200 hover:bg-amber-50/50;
+  }
+
+  .zivia-pill-active {
+    @apply border-amber-700 bg-gradient-to-b from-amber-700 to-amber-600 text-white shadow-md shadow-amber-900/20;
+  }
+
+  .zivia-auth-wrap {
+    @apply min-h-screen bg-gradient-to-b from-[var(--zivia-warm-white)] via-[var(--background)] to-[var(--zivia-cream)] px-4 py-16;
+  }
+
+  .zivia-auth-card {
+    @apply mx-auto max-w-md rounded-[2rem] border border-amber-100/80 bg-white/95 p-8 shadow-[0_28px_70px_-40px_rgba(97,63,34,0.45)] backdrop-blur;
+  }
+
+  .zivia-btn-primary {
+    @apply inline-flex min-h-11 min-w-[10rem] items-center justify-center rounded-full bg-gradient-to-b from-amber-600 to-amber-800 px-7 py-3.5 text-[13px] font-medium tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_28px_-8px_rgba(146,64,14,0.38)] transition duration-500 ease-out hover:from-amber-500 hover:to-amber-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_14px_40px_-10px_rgba(146,64,14,0.45)] active:scale-[0.98];
+  }
+
+  .zivia-btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-full border border-stone-200/90 bg-white/90 px-7 py-3.5 text-[13px] font-medium tracking-wide text-stone-700 shadow-sm shadow-stone-200/30 backdrop-blur-sm transition duration-500 ease-out hover:border-amber-200/80 hover:bg-[var(--zivia-warm-white)] hover:text-stone-900 hover:shadow-md active:scale-[0.98];
+  }
+
+  .zivia-btn-hero-primary {
+    @apply inline-flex min-h-[3.25rem] min-w-[11rem] items-center justify-center rounded-full bg-gradient-to-b from-amber-600 to-amber-800 px-8 py-3.5 text-[14px] font-medium tracking-[0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_12px_32px_-10px_rgba(146,64,14,0.42)] transition duration-500 ease-out hover:from-amber-500 hover:to-amber-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_18px_44px_-12px_rgba(146,64,14,0.48)] active:scale-[0.98];
+  }
+
+  .zivia-btn-hero-secondary {
+    @apply inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-stone-200/90 bg-white/95 px-8 py-3.5 text-[14px] font-medium tracking-[0.05em] text-stone-700 shadow-[0_2px_16px_-6px_rgba(28,25,23,0.08)] backdrop-blur-sm transition duration-500 ease-out hover:border-amber-300/60 hover:bg-[var(--zivia-warm-white)] hover:text-stone-900 hover:shadow-md active:scale-[0.98];
+  }
+
+  .zivia-link-quiet {
+    @apply text-[13px] font-medium tracking-wide text-amber-900/70 underline-offset-[6px] transition hover:text-amber-900 hover:underline;
+  }
 }
