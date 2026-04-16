@@ -24,28 +24,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === "" ? 1 : 0.7,
   }));
 
-  const [{ data: products }, { data: sellers }] = await Promise.all([
-    supabase.from("products").select("slug").not("slug", "is", null),
-    supabase.from("sellers").select("slug").not("slug", "is", null),
-  ]);
+  try {
+    const [{ data: products }, { data: sellers }] = await Promise.all([
+      supabase.from("products").select("slug").not("slug", "is", null),
+      supabase.from("sellers").select("slug").not("slug", "is", null),
+    ]);
 
-  const productEntries: MetadataRoute.Sitemap = (products ?? [])
-    .filter((p): p is { slug: string } => Boolean(p?.slug))
-    .map((p) => ({
-      url: `${base}/products/${encodeURIComponent(p.slug)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    }));
+    const productEntries: MetadataRoute.Sitemap = (products ?? [])
+      .filter((p): p is { slug: string } => Boolean(p?.slug))
+      .map((p) => ({
+        url: `${base}/products/${encodeURIComponent(p.slug)}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      }));
 
-  const sellerEntries: MetadataRoute.Sitemap = (sellers ?? [])
-    .filter((s): s is { slug: string } => Boolean(s?.slug))
-    .map((s) => ({
-      url: `${base}/sellers/${encodeURIComponent(s.slug)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.5,
-    }));
+    const sellerEntries: MetadataRoute.Sitemap = (sellers ?? [])
+      .filter((s): s is { slug: string } => Boolean(s?.slug))
+      .map((s) => ({
+        url: `${base}/sellers/${encodeURIComponent(s.slug)}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+      }));
 
-  return [...staticEntries, ...productEntries, ...sellerEntries];
+    return [...staticEntries, ...productEntries, ...sellerEntries];
+  } catch {
+    // Sitemap should still render if DB query fails temporarily.
+    return staticEntries;
+  }
 }
