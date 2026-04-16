@@ -1,79 +1,126 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import SellerNotificationsBell from "@/components/SellerNotificationsBell";
 import { createClient } from "@/lib/supabase/client";
 
-function SearchIcon({ className }: { className?: string }) {
+function IconButton({
+  children,
+  href,
+  label,
+}: {
+  children: React.ReactNode;
+  href: string;
+  label: string;
+}) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="m21 21-4.4-4.4M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
+    <Link
+      href={href}
+      aria-label={label}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#deceb2] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
+    >
+      {children}
+    </Link>
   );
 }
 
-function HeartIcon({ className }: { className?: string }) {
+function DrawerItem({
+  href,
+  label,
+  onClick,
+  icon,
+}: {
+  href: string;
+  label: string;
+  onClick: () => void;
+  icon: React.ReactNode;
+}) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 20.3c-.3 0-.6-.1-.8-.3l-1.8-1.6c-3.8-3.5-6.2-5.7-6.2-8.5A5 5 0 0 1 8.2 5c1.5 0 3 .7 3.8 1.8A5 5 0 0 1 15.8 5a5 5 0 0 1 5 4.9c0 2.8-2.4 5-6.2 8.5L12.8 20c-.2.2-.5.3-.8.3Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UserIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CartIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 4h2.2c.8 0 1.4.5 1.6 1.3L7.5 8m0 0h12.2l-1.3 5.3c-.2.8-.9 1.4-1.7 1.4H9.2c-.8 0-1.5-.6-1.7-1.4L6 7m1.5 1 1.1 5M10 20a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 10 20Zm7 0a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 17 20Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-[15px] font-medium text-[#2a241b] transition hover:bg-[#f3eadb] hover:text-[#8b6b2c]"
+    >
+      <span className="inline-flex h-5 w-5 items-center justify-center text-[#a8843e]">{icon}</span>
+      {label}
+    </Link>
   );
 }
 
 export default function Navbar() {
   const supabase = createClient();
+  const router = useRouter();
+  const pathname = usePathname();
   const [signedIn, setSignedIn] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [displayName, setDisplayName] = useState("Qonaq");
+
+  const isProductsPage = pathname?.startsWith("/products");
+  const normalizedName = useMemo(() => {
+    const t = displayName.trim();
+    if (!t) return "Qonaq";
+    return t.length > 20 ? `${t.slice(0, 20)}…` : t;
+  }, [displayName]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setSignedIn(Boolean(data.session?.user));
+      const user = data.session?.user;
+      setSignedIn(Boolean(user));
+      const brand = String(user?.user_metadata?.brand_name ?? "").trim();
+      if (brand) {
+        setDisplayName(brand);
+      } else {
+        const emailPrefix = String(user?.email ?? "").split("@")[0]?.trim();
+        setDisplayName(emailPrefix || "Qonaq");
+      }
     });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSignedIn(Boolean(session?.user));
+      const user = session?.user;
+      setSignedIn(Boolean(user));
+      const brand = String(user?.user_metadata?.brand_name ?? "").trim();
+      if (brand) {
+        setDisplayName(brand);
+      } else {
+        const emailPrefix = String(user?.email ?? "").split("@")[0]?.trim();
+        setDisplayName(emailPrefix || "Qonaq");
+      }
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [menuOpen]);
+
+  function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const q = searchTerm.trim();
+    if (!q) {
+      router.push("/products");
+      return;
+    }
+    router.push(`/products?q=${encodeURIComponent(q)}`);
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -81,91 +128,281 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-amber-100/80 bg-white/95 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-3.5 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="font-display text-[1.9rem] leading-none text-stone-900">
-            Zivia
-          </Link>
-
-          <div className="hidden min-w-0 flex-1 items-center gap-2 rounded-full border border-amber-100 bg-[var(--zivia-warm-white)] px-3 py-2 text-sm text-stone-500 md:flex">
-            <SearchIcon className="h-4 w-4 text-stone-400" />
-            Search jewelry...
+    <>
+      <header className="sticky top-0 z-40 border-b border-[#e5d7c0] bg-[var(--zivia-warm-white)]/95 px-3 pb-3 pt-4 backdrop-blur md:px-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              aria-label="menu"
+              onClick={() => setMenuOpen(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#deceb2] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+              </svg>
+            </button>
+            <Link href="/" className="font-display text-[1.9rem] leading-none text-[#2f2517]">
+              Zivia
+            </Link>
           </div>
-
-          <div className="ml-auto flex items-center gap-1.5 text-stone-600">
-            <Link
-              href="/products"
-              className="rounded-full p-2 transition hover:bg-amber-50 hover:text-amber-700"
-              aria-label="Məhsullar"
-            >
-              <SearchIcon className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/products"
-              className="rounded-full p-2 transition hover:bg-amber-50 hover:text-amber-700"
-              aria-label="Sevimlilər"
-            >
-              <HeartIcon className="h-4 w-4" />
-            </Link>
-            <Link
-              href={signedIn ? "/dashboard/profile" : "/login"}
-              className="rounded-full p-2 transition hover:bg-amber-50 hover:text-amber-700"
-              aria-label="Profil"
-            >
-              <UserIcon className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/products"
-              className="rounded-full p-2 transition hover:bg-amber-50 hover:text-amber-700"
-              aria-label="Səbət"
-            >
-              <CartIcon className="h-4 w-4" />
-            </Link>
+          <div className="flex items-center gap-2">
+            <IconButton href="/products" label="wishlist">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M12 21s-6.5-4.35-9-8.4A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9 6.6C18.5 16.65 12 21 12 21Z"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </IconButton>
+            {signedIn ? (
+              <div className="hidden sm:block">
+                <SellerNotificationsBell />
+              </div>
+            ) : null}
+            <IconButton href={signedIn ? "/dashboard" : "/login"} label="profile">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+                <path
+                  d="M5 19c1.8-2.9 4-4.2 7-4.2s5.2 1.3 7 4.2"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </IconButton>
+            <IconButton href="/cart" label="cart">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M4 5h2l1.2 8.1a1 1 0 0 0 1 .9h8.5a1 1 0 0 0 1-.8L19 8H7.2"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="10" cy="18.5" r="1.4" fill="currentColor" />
+                <circle cx="16.8" cy="18.5" r="1.4" fill="currentColor" />
+              </svg>
+            </IconButton>
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <nav className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto text-sm font-medium text-stone-600 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Link href="/" className="shrink-0 transition hover:text-amber-800">
-              Ana səhifə
-            </Link>
-            <Link href="/products" className="shrink-0 transition hover:text-amber-800">
-              Kolleksiyalar
-            </Link>
-            {signedIn ? (
-              <Link
-                href="/dashboard"
-                className="shrink-0 transition hover:text-amber-800"
-              >
-                Panel
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="shrink-0 transition hover:text-amber-800"
-              >
-                Satıcı girişi
-              </Link>
-            )}
-          </nav>
+        <form
+          onSubmit={handleSearchSubmit}
+          className="mt-3 flex items-center gap-2 rounded-xl border border-[#dfd1b8] bg-white px-3 py-2.5"
+        >
+          <svg className="h-4 w-4 text-stone-400" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" />
+            <path d="M20 20 16.7 16.7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Axtarın..."
+            className="w-full bg-transparent text-sm text-stone-700 outline-none placeholder:text-stone-400"
+          />
+          <button type="submit" className="text-xs font-semibold text-[#8b6b2c]">
+            Axtar
+          </button>
+        </form>
 
-          {signedIn ? (
-            <div className="flex items-center gap-3">
-              <div className="relative z-[60] shrink-0 rounded-full border border-amber-100 bg-white p-1">
-                <SellerNotificationsBell />
+        {signedIn ? null : null}
+      </header>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-[120] bg-black/28 backdrop-blur-[1px]">
+          <div className="h-full w-full max-w-[320px] bg-[var(--zivia-warm-white)] p-4 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#aa8540] text-[#aa8540]">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+                    <path d="M5 19c1.8-2.9 4-4.2 7-4.2s5.2 1.3 7 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <p className="leading-tight text-[#1f1d1b]">
+                  <span className="block text-base font-medium">Xoş gəldin,</span>
+                  <span className="block text-[1.45rem] font-semibold">{normalizedName}!</span>
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => void signOut()}
-                className="shrink-0 rounded-full border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-50"
+                onClick={() => setMenuOpen(false)}
+                aria-label="close menu"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-stone-500 hover:bg-[#f2eadc]"
               >
-                Çıxış
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
               </button>
             </div>
-          ) : null}
+
+            <nav className="mt-6 space-y-4 text-[#1f1d1b]">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Kolleksiyalar</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <DrawerItem
+                    href="/products"
+                    label="Yeni gələnlər"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/products"
+                    label="Bəzək əşyaları"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M12 3 6 8v8l6 5 6-5V8l-6-5Z" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/products"
+                    label="Hədiyyələr"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <rect x="4" y="8" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                        <path d="M12 8v12M4 12h16M8 8c0-1.7 1.4-3 3-3h1v3H8Zm8 0c0-1.7-1.4-3-3-3h-1v3h4Z" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Satıcılar</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <DrawerItem
+                    href="/products"
+                    label="Populyar"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M5 19V10M12 19V6M19 19v-8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/products"
+                    label="Yaxın"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M12 21s7-5.4 7-10a7 7 0 1 0-14 0c0 4.6 7 10 7 10Z" stroke="currentColor" strokeWidth="1.7" />
+                        <circle cx="12" cy="11" r="2.2" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Hesabım</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <DrawerItem
+                    href="/dashboard"
+                    label="Sifarişlərim"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                        <path d="M8 9h8M8 13h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/products"
+                    label="Bəyənilənlər"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M12 21s-6.5-4.35-9-8.4A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9 6.6C18.5 16.65 12 21 12 21Z" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/dashboard/profile"
+                    label="Ayarlar"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+                        <path d="M19 12a7 7 0 0 0-.08-1l2.08-1.6-2-3.46-2.5 1a7 7 0 0 0-1.7-1L14.5 3h-4L10 5.94a7 7 0 0 0-1.7 1l-2.5-1-2 3.46L5.88 11a7 7 0 0 0 0 2L3.8 14.6l2 3.46 2.5-1a7 7 0 0 0 1.7 1l.5 2.94h4l.5-2.94a7 7 0 0 0 1.7-1l2.5 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z" stroke="currentColor" strokeWidth="1.2" />
+                      </svg>
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Dəstək</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <DrawerItem
+                    href="/terms"
+                    label="Əlaqə"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    }
+                  />
+                  <DrawerItem
+                    href="/privacy"
+                    label="FAQ"
+                    onClick={() => setMenuOpen(false)}
+                    icon={
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+                        <path d="M9.7 9.6a2.4 2.4 0 1 1 3.8 2c-.86.62-1.5 1-1.5 2.1M12 17.2h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                      </svg>
+                    }
+                  />
+                </div>
+              </div>
+            </nav>
+
+            <div className="mt-6">
+              {signedIn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void signOut();
+                  }}
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
+                >
+                  Çıxış
+                </button>
+              ) : (
+                <Link
+                  onClick={() => setMenuOpen(false)}
+                  href="/login"
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
+                >
+                  Giriş
+                </Link>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="close overlay"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 -z-10"
+          />
         </div>
-      </div>
-    </header>
+      ) : null}
+    </>
   );
 }

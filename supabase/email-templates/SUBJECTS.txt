@@ -1,0 +1,13 @@
+Supabase Dashboard → Authentication → Email templates → hər şablon üçün Subject (mövzu):
+
+Confirm signup (Qeydiyyat təsdiqi):
+  Zivia — e-poçt təsdiqi
+
+Reset password (Şifrə bərpası):
+  Zivia — şifrə bərpası
+
+Magic link:
+  Zivia — giriş linki
+
+Change email address:
+  Zivia — e-poçt dəyişikliyi

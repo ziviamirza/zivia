@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { Noto_Serif, Outfit } from "next/font/google";
-import { Footer } from "@/components/Footer";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
@@ -59,18 +58,24 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${outfit.variable} ${notoSerif.variable} h-full scroll-smooth`}
     >
-      <body className="flex min-h-full flex-col font-sans text-stone-900 antialiased">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Suspense
-          fallback={
-            <footer className="border-t border-stone-100 py-10 text-center text-sm text-stone-400">
-              …
-            </footer>
-          }
-        >
-          <Footer />
-        </Suspense>
+      <body className="min-h-full bg-[var(--background)] font-sans text-stone-900 antialiased">
+        <div className="app-shell">
+          <Navbar />
+          <main className="flex-1 pb-5">{children}</main>
+          <footer className="border-t border-[#e5d7c0] bg-[#f8f2e8] px-4 py-3">
+            <div className="flex items-center justify-between text-[11px] text-stone-600">
+              <p>© {new Date().getFullYear()} Zivia</p>
+              <div className="flex items-center gap-3">
+                <Link href="/privacy" className="hover:text-[#8b6b2c]">
+                  Məxfilik
+                </Link>
+                <Link href="/terms" className="hover:text-[#8b6b2c]">
+                  Şərtlər
+                </Link>
+              </div>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   );
