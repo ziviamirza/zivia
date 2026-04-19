@@ -1,3 +1,13 @@
+/** Dəstək WhatsApp: göstərmə və wa.me üçün (AZ, 010… → 994…). */
+export const SUPPORT_WHATSAPP_DISPLAY = "0103849584";
+const SUPPORT_WHATSAPP_WA_ME = "994103849584";
+
+export function getSupportWhatsAppUrl(message?: string): string {
+  const base = `https://wa.me/${SUPPORT_WHATSAPP_WA_ME}`;
+  if (message?.trim()) return `${base}?text=${encodeURIComponent(message.trim())}`;
+  return base;
+}
+
 /** Canonik sayt ünvanı: production-da NEXT_PUBLIC_SITE_URL (məs: https://zivia.az). */
 export function getSiteUrl(): string {
   let fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();

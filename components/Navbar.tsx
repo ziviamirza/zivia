@@ -194,9 +194,6 @@ export default function Navbar() {
     window.location.href = "/";
   }
 
-  const settingsHref = signedIn
-    ? "/dashboard/profile"
-    : `/login?next=${encodeURIComponent("/dashboard/profile")}`;
   const giftCategory = encodeURIComponent("Dəstlər");
 
   return (
@@ -398,7 +395,7 @@ export default function Navbar() {
                     />
                   ) : null}
                   <DrawerItem
-                    href={settingsHref}
+                    href="/settings"
                     label="Ayarlar"
                     onClick={() => setMenuOpen(false)}
                     icon={

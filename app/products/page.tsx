@@ -76,7 +76,7 @@ export default async function ProductsPage({
         </form>
       </section>
 
-      <section className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+      <section className="app-scroll-x -mx-3 flex gap-2 px-3 pb-1">
         <Link
           href={q ? `/products?q=${encodeURIComponent(q)}` : "/products"}
           className={`rounded-full border px-3 py-1.5 text-xs ${
