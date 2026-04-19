@@ -6,9 +6,9 @@ export async function POST(request: Request) {
   const res = NextResponse.redirect(url);
   res.cookies.set(ADMIN_COOKIE, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
     sameSite: "lax",
-    path: "/admin",
+    path: "/",
     maxAge: 0,
   });
   return res;

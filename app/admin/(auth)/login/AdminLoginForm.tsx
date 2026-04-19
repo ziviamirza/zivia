@@ -17,6 +17,7 @@ export default function AdminLoginForm({ nextPath }: { nextPath: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code }),
+        credentials: "same-origin",
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {

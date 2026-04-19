@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { cleanEnvValue } from "@/lib/admin-token";
 
 function bufEq(a: string, b: string): boolean {
   const x = Buffer.from(a, "utf8");
@@ -8,8 +9,8 @@ function bufEq(a: string, b: string): boolean {
 }
 
 export function validateAdminCredentials(email: string, code: string): boolean {
-  const wantEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
-  const wantCode = process.env.ADMIN_CODE?.trim() ?? "";
+  const wantEmail = cleanEnvValue(process.env.ADMIN_EMAIL).toLowerCase();
+  const wantCode = cleanEnvValue(process.env.ADMIN_CODE);
   if (!wantEmail || !wantCode) return false;
   const gotEmail = email.trim().toLowerCase();
   const gotCode = code.trim();

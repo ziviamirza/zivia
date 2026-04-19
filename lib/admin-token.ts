@@ -2,18 +2,31 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const ADMIN_COOKIE = "zivia_admin";
 
+/** Vercel/UI-dən kopyalayıb dırnaq qalsa təmizləyir. */
+export function cleanEnvValue(raw: string | undefined): string {
+  if (!raw) return "";
+  let s = raw.trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 function getSecret(): Uint8Array | null {
-  const s = process.env.ADMIN_JWT_SECRET?.trim();
+  const s = cleanEnvValue(process.env.ADMIN_JWT_SECRET);
   if (!s || s.length < 24) return null;
   return new TextEncoder().encode(s);
 }
 
 export function adminAuthConfigured(): boolean {
+  const jwt = cleanEnvValue(process.env.ADMIN_JWT_SECRET);
   return Boolean(
-    process.env.ADMIN_EMAIL?.trim() &&
-      process.env.ADMIN_CODE?.trim() &&
-      process.env.ADMIN_JWT_SECRET?.trim() &&
-      process.env.ADMIN_JWT_SECRET.trim().length >= 24,
+    cleanEnvValue(process.env.ADMIN_EMAIL) &&
+      cleanEnvValue(process.env.ADMIN_CODE) &&
+      jwt.length >= 24,
   );
 }
 

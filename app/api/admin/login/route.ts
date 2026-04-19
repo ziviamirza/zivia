@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { ADMIN_COOKIE, adminAuthConfigured, signAdminJwt } from "@/lib/admin-token";
 import { validateAdminCredentials } from "@/lib/admin-login-validate";
 
+export const runtime = "nodejs";
+
+function cookieSecure(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+
 export async function POST(req: Request) {
   if (!adminAuthConfigured()) {
     return NextResponse.json(
@@ -30,11 +36,12 @@ export async function POST(req: Request) {
   }
 
   const res = NextResponse.json({ ok: true });
+  /** path=/ bütün /admin sorğularına cookie göndərilməsini təmin edir (path=/admin bəzi hallarda çatışmaz). */
   res.cookies.set(ADMIN_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     sameSite: "lax",
-    path: "/admin",
+    path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
   return res;
