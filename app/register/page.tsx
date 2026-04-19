@@ -55,7 +55,7 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setMessage(authErrorToAz(error.message));
+      setMessage(authErrorToAz(error.message, error.code));
       setLoading(false);
       return;
     }

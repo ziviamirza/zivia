@@ -1,7 +1,22 @@
 /**
  * Supabase Auth xətalarının ingilis mətnlərini istifadəçi üçün Azərbaycan dilinə yaxınlaşdırır.
+ * @param code — GoTrue `error.code` (məs: invalid_credentials, email_not_confirmed)
  */
-export function authErrorToAz(message: string | undefined | null): string {
+export function authErrorToAz(
+  message: string | undefined | null,
+  code?: string | undefined | null,
+): string {
+  const c = (code ?? "").trim().toLowerCase();
+  if (c === "invalid_credentials") {
+    return "E-poçt və ya şifrə yanlışdır.";
+  }
+  if (c === "email_not_confirmed") {
+    return "E-poçt təsdiqlənməyib. Gələn qovluğu və spamı yoxlayın, təsdiq linkinə basın.";
+  }
+  if (c === "user_banned") {
+    return "Bu hesab məhdudlaşdırılıb. Dəstəklə əlaqə saxlayın.";
+  }
+
   const raw = (message ?? "").trim();
   if (!raw) {
     return "Əməliyyat alınmadı. Bir az sonra yenidən cəhd edin.";
@@ -14,6 +29,9 @@ export function authErrorToAz(message: string | undefined | null): string {
   }
   if (m.includes("email not confirmed")) {
     return "E-poçt təsdiqlənməyib. Gələn qovluğu və spamı yoxlayın.";
+  }
+  if (m.includes("invalid grant") || m.includes("grant_type=password")) {
+    return "Giriş rədd edildi. E-poçt və şifrəni yoxlayın və ya e-poçtu təsdiqləyin.";
   }
   if (m.includes("user already registered") || m.includes("already been registered")) {
     return "Bu e-poçt artıq qeydiyyatdadır. Giriş edin və ya şifrəni bərpa edin.";
@@ -68,5 +86,5 @@ export function recoverPasswordErrorToAz(error: AuthLikeError): string {
     return "Eyni e-poçt üçün link çox tez istənilib. Təhlükəsizlik limiti var — təxminən 1–2 dəqiqə gözləyin. Əvvəlki e-poçtda link varsa, gələn qovluğu və spamı yoxlayın.";
   }
 
-  return authErrorToAz(error.message);
+  return authErrorToAz(error.message, error.code);
 }

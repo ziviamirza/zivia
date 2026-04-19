@@ -29,29 +29,42 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(() => {
-    if (typeof window === "undefined") return "";
+  const [notice, setNotice] = useState<{
+    text: string;
+    kind: "success" | "error";
+  } | null>(() => {
+    if (typeof window === "undefined") return null;
     const p = new URLSearchParams(window.location.search);
     if (p.get("registered") === "1") {
-      return "Qeydiyyat tamamlandı. E‑poçt və şifrənizlə daxil ola bilərsiniz.";
+      return {
+        text: "Qeydiyyat tamamlandı. E‑poçt təsdiqlənibsə, e‑poçt və şifrənizlə daxil olun.",
+        kind: "success" as const,
+      };
     }
     if (p.get("error") === "auth") {
-      return "Giriş əməliyyatı tamamlanmadı. Bir daha cəhd edin və ya şifrəni bərpa edin.";
+      return {
+        text: "Giriş əməliyyatı tamamlanmadı. Bir daha cəhd edin və ya şifrəni bərpa edin.",
+        kind: "error" as const,
+      };
     }
-    return "";
+    return null;
   });
 
   async function handleLogin() {
     setLoading(true);
-    setMessage("");
+    setNotice(null);
 
+    const trimmedEmail = email.trim();
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: trimmedEmail,
       password,
     });
 
     if (error) {
-      setMessage(authErrorToAz(error.message));
+      setNotice({
+        text: authErrorToAz(error.message, error.code),
+        kind: "error",
+      });
     } else {
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next");
@@ -150,9 +163,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {message ? (
-              <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {message}
+            {notice ? (
+              <p
+                role="alert"
+                className={
+                  notice.kind === "success"
+                    ? "mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                    : "mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+                }
+              >
+                {notice.text}
               </p>
             ) : null}
           </section>
