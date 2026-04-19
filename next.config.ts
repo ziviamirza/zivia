@@ -27,12 +27,6 @@ if (supabaseUrl) {
 }
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      /** Köhnə brauzerlər / Google bəzən birbaşa /favicon.ico axtarır */
-      { source: "/favicon.ico", destination: "/icon", permanent: false },
-    ];
-  },
   images: {
     loader: "custom",
     loaderFile: "./lib/imageLoader.ts",
