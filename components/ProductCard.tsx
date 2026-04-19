@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AddToCartButton from "@/components/AddToCartButton";
+import FavoriteHeartButton from "@/components/FavoriteHeartButton";
 import { formatAzn } from "@/lib/format";
 
 type Props = {
@@ -19,7 +21,6 @@ export default function ProductCard({
   const href = slug ? `/products/${slug}` : "#";
   const raw = imageUrl?.trim() ?? "";
   const showImg = raw.startsWith("http://") || raw.startsWith("https://");
-  const rating = ((title.length % 8) + 42) / 10;
 
   return (
     <article className="app-surface overflow-hidden p-2 transition hover:-translate-y-0.5">
@@ -45,24 +46,29 @@ export default function ProductCard({
           {title}
         </Link>
         <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">{category}</p>
-        <p className="mt-1 text-xs text-[#8b6b2c]">{"★".repeat(5)} {rating.toFixed(1)}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
           <p className="text-sm font-bold text-[#7a5b24]">{formatAzn(price)}</p>
-          <Link
-            href="/cart"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--zivia-gold-strong)] text-white transition hover:bg-[var(--zivia-gold)]"
-            aria-label="add to cart"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M4 6h2l1.2 8a1 1 0 0 0 1 .9h8.4a1 1 0 0 0 1-.8L19 9H7.1"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </Link>
+          {slug ? (
+            <span className="flex shrink-0 items-center gap-1">
+              <FavoriteHeartButton slug={slug} />
+              <AddToCartButton slug={slug} goToCart title="Səbətə əlavə et və səbətə keç" />
+            </span>
+          ) : (
+            <span
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-stone-200 text-stone-400"
+              aria-hidden
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 6h2l1.2 8a1 1 0 0 0 1 .9h8.4a1 1 0 0 0 1-.8L19 9H7.1"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          )}
         </div>
       </div>
     </article>

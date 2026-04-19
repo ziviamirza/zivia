@@ -13,3 +13,20 @@ export function getSiteUrl(): string {
   }
   return "http://localhost:3000";
 }
+
+/** Şəkil və ya nisbi yolu tam https URL-ə çevirir (OG, JSON-LD). */
+export function toAbsoluteUrl(
+  baseUrl: string,
+  raw: string | null | undefined,
+): string | undefined {
+  if (!raw?.trim()) return undefined;
+  const t = raw.trim();
+  if (/^https?:\/\//i.test(t)) return t;
+  const base = baseUrl.replace(/\/$/, "");
+  try {
+    const path = t.startsWith("/") ? t : `/${t}`;
+    return new URL(path, base).href;
+  } catch {
+    return undefined;
+  }
+}

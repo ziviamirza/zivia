@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import SellerNotificationsBell from "@/components/SellerNotificationsBell";
+import { readCartLines, subscribeCart } from "@/lib/cart-storage";
+import { favoriteCount, subscribeFavorites } from "@/lib/favorites-storage";
 import { createClient } from "@/lib/supabase/client";
 
 function IconButton({
@@ -23,6 +25,71 @@ function IconButton({
       className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#deceb2] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
     >
       {children}
+    </Link>
+  );
+}
+
+function FavoritesNavButton() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const sync = () => setCount(favoriteCount());
+    sync();
+    return subscribeFavorites(sync);
+  }, []);
+  return (
+    <Link
+      href="/favorites"
+      aria-label={count ? `Bəyəndiklərim, ${count} məhsul` : "Bəyəndiklərim"}
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#deceb2] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M12 21s-6.5-4.35-9-8.4A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9 6.6C18.5 16.65 12 21 12 21Z"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {count > 0 ? (
+        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#9a3d4a] px-1 text-[10px] font-bold leading-none text-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function CartNavButton() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const sync = () =>
+      setCount(readCartLines().reduce((sum, line) => sum + line.qty, 0));
+    sync();
+    return subscribeCart(sync);
+  }, []);
+  return (
+    <Link
+      href="/cart"
+      aria-label={count ? `Səbət, ${count} ədəd` : "Səbət"}
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#deceb2] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M4 5h2l1.2 8.1a1 1 0 0 0 1 .9h8.5a1 1 0 0 0 1-.8L19 8H7.2"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="10" cy="18.5" r="1.4" fill="currentColor" />
+        <circle cx="16.8" cy="18.5" r="1.4" fill="currentColor" />
+      </svg>
+      {count > 0 ? (
+        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7a4518] px-1 text-[10px] font-bold leading-none text-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -127,6 +194,11 @@ export default function Navbar() {
     window.location.href = "/";
   }
 
+  const settingsHref = signedIn
+    ? "/dashboard/profile"
+    : `/login?next=${encodeURIComponent("/dashboard/profile")}`;
+  const giftCategory = encodeURIComponent("Dəstlər");
+
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[#e5d7c0] bg-[var(--zivia-warm-white)]/95 px-3 pb-3 pt-4 backdrop-blur md:px-4">
@@ -147,17 +219,7 @@ export default function Navbar() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <IconButton href="/products" label="wishlist">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M12 21s-6.5-4.35-9-8.4A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9 6.6C18.5 16.65 12 21 12 21Z"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </IconButton>
+            <FavoritesNavButton />
             {signedIn ? (
               <div className="hidden sm:block">
                 <SellerNotificationsBell />
@@ -174,19 +236,7 @@ export default function Navbar() {
                 />
               </svg>
             </IconButton>
-            <IconButton href="/cart" label="cart">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M4 5h2l1.2 8.1a1 1 0 0 0 1 .9h8.5a1 1 0 0 0 1-.8L19 8H7.2"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="10" cy="18.5" r="1.4" fill="currentColor" />
-                <circle cx="16.8" cy="18.5" r="1.4" fill="currentColor" />
-              </svg>
-            </IconButton>
+            <CartNavButton />
           </div>
         </div>
 
@@ -246,7 +296,7 @@ export default function Navbar() {
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Kolleksiyalar</p>
                 <div className="mt-1.5 space-y-0.5">
                   <DrawerItem
-                    href="/products"
+                    href="/#yeni-mehsullar"
                     label="Yeni gələnlər"
                     onClick={() => setMenuOpen(false)}
                     icon={
@@ -257,7 +307,7 @@ export default function Navbar() {
                   />
                   <DrawerItem
                     href="/products"
-                    label="Bəzək əşyaları"
+                    label="Bütün məhsullar"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -266,8 +316,8 @@ export default function Navbar() {
                     }
                   />
                   <DrawerItem
-                    href="/products"
-                    label="Hədiyyələr"
+                    href={`/products?category=${giftCategory}`}
+                    label="Hədiyyə dəstləri"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -283,8 +333,8 @@ export default function Navbar() {
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Satıcılar</p>
                 <div className="mt-1.5 space-y-0.5">
                   <DrawerItem
-                    href="/products"
-                    label="Populyar"
+                    href="/#populyar-saticilar"
+                    label="Populyar satıcılar"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -293,8 +343,8 @@ export default function Navbar() {
                     }
                   />
                   <DrawerItem
-                    href="/products"
-                    label="Yaxın"
+                    href="/sellers"
+                    label="Bütün satıcılar"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -310,8 +360,8 @@ export default function Navbar() {
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Hesabım</p>
                 <div className="mt-1.5 space-y-0.5">
                   <DrawerItem
-                    href="/dashboard"
-                    label="Sifarişlərim"
+                    href="/cart"
+                    label="Səbətim"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -321,8 +371,8 @@ export default function Navbar() {
                     }
                   />
                   <DrawerItem
-                    href="/products"
-                    label="Bəyənilənlər"
+                    href="/favorites"
+                    label="Bəyəndiklərim"
                     onClick={() => setMenuOpen(false)}
                     icon={
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -330,8 +380,25 @@ export default function Navbar() {
                       </svg>
                     }
                   />
+                  {signedIn ? (
+                    <DrawerItem
+                      href="/dashboard"
+                      label="Satıcı paneli"
+                      onClick={() => setMenuOpen(false)}
+                      icon={
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path
+                            d="M4 6h16v12H4zM8 10h8M8 14h5"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      }
+                    />
+                  ) : null}
                   <DrawerItem
-                    href="/dashboard/profile"
+                    href={settingsHref}
                     label="Ayarlar"
                     onClick={() => setMenuOpen(false)}
                     icon={
@@ -348,7 +415,7 @@ export default function Navbar() {
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Dəstək</p>
                 <div className="mt-1.5 space-y-0.5">
                   <DrawerItem
-                    href="/terms"
+                    href="/contact"
                     label="Əlaqə"
                     onClick={() => setMenuOpen(false)}
                     icon={
@@ -358,7 +425,7 @@ export default function Navbar() {
                     }
                   />
                   <DrawerItem
-                    href="/privacy"
+                    href="/faq"
                     label="FAQ"
                     onClick={() => setMenuOpen(false)}
                     icon={

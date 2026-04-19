@@ -76,21 +76,20 @@ export default async function Home() {
         </div>
       </section>
 
-      <section>
+      <section id="populyar-saticilar">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-900 md:text-lg">Populyar satıcılar</h2>
-          <Link href="/products" className="text-xs font-medium text-[#8b6b2c]">
+          <Link href="/sellers" className="text-xs font-medium text-[#8b6b2c]">
             Hamısı
           </Link>
         </div>
         <div className="app-scroll-x -mx-3 flex gap-3 px-3 pb-1">
           {topSellers.length ? (
-            topSellers.map((s, index) => (
+            topSellers.map((s) => (
               <SellerCard
                 key={s.id}
                 seller={{
                   ...s,
-                  rating: 4.6 + ((index % 4) * 0.1),
                   previewImages: previewsBySellerId.get(Number(s.id)) ?? [],
                 }}
               />
@@ -103,7 +102,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="pb-2">
+      <section id="yeni-mehsullar" className="pb-2">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-900 md:text-lg">Yeni məhsullar</h2>
           <Link href="/products" className="text-xs font-medium text-[#8b6b2c]">

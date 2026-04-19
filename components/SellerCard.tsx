@@ -3,13 +3,11 @@ import type { Seller } from "@/types";
 
 type Props = {
   seller: Seller & {
-    rating?: number;
     previewImages?: string[];
   };
 };
 
 export function SellerCard({ seller }: Props) {
-  const stars = seller.rating ?? 4.8;
   const previews = seller.previewImages ?? [];
 
   return (
@@ -26,7 +24,9 @@ export function SellerCard({ seller }: Props) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-stone-900">{seller.name}</p>
-            <p className="text-[11px] text-[#8b6b2c]">{"★".repeat(5)} {stars.toFixed(1)}</p>
+            {seller.tagline ? (
+              <p className="line-clamp-1 text-[11px] text-stone-500">{seller.tagline}</p>
+            ) : null}
           </div>
         </div>
 

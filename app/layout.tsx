@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Noto_Serif, Outfit } from "next/font/google";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import JsonLd from "@/components/JsonLd";
+import { buildSiteJsonLd } from "@/lib/jsonld";
 import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
@@ -19,9 +21,15 @@ const notoSerif = Noto_Serif({
 });
 
 const siteUrl = getSiteUrl();
+const siteJsonLd = buildSiteJsonLd(siteUrl);
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  icons: {
+    icon: [{ url: "/icon", type: "image/png", sizes: "96x96" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    shortcut: "/icon",
+  },
   title: {
     default: "Zivia — Premium zərgərlik bazarı",
     template: "%s | Zivia",
@@ -59,6 +67,7 @@ export default function RootLayout({
       className={`${outfit.variable} ${notoSerif.variable} h-full scroll-smooth`}
     >
       <body className="min-h-full bg-[var(--background)] font-sans text-stone-900 antialiased">
+        <JsonLd id="zivia-site-jsonld" data={siteJsonLd} />
         <div className="app-shell">
           <Navbar />
           <main className="flex-1 pb-5">{children}</main>

@@ -1,81 +1,158 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatAzn } from "@/lib/format";
-
-type CartItem = {
-  id: string;
-  title: string;
-  image: string;
-  rating: number;
-  price: number;
-  qty: number;
-};
+import {
+  readCartLines,
+  writeCartLines,
+  type CartLine,
+} from "@/lib/cart-storage";
+import { createClient } from "@/lib/supabase/client";
+import { primaryProductImageUrl } from "@/lib/product-images";
 
 const shippingFee = 0;
-const taxFee = 10;
+const taxFee = 0;
 
-const initialItems: CartItem[] = [
-  {
-    id: "1",
-    title: "Mas: Ulduzlu Boyunbağı",
-    image: "https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    price: 180,
-    qty: 1,
-  },
-  {
-    id: "2",
-    title: "Brilliant Üzük",
-    image: "https://images.unsplash.com/photo-1598560917505-59a3ad559071?auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    price: 180,
-    qty: 1,
-  },
-  {
-    id: "3",
-    title: "Diamond Bracelet",
-    image: "https://images.unsplash.com/photo-1601821765780-754fa98637c1?auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    price: 180,
-    qty: 1,
-  },
-  {
-    id: "4",
-    title: "Mas: Star-bur Pendant",
-    image: "https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&w=500&q=80",
-    rating: 5,
-    price: 180,
-    qty: 1,
-  },
-];
+type ProductRow = {
+  id: string | number;
+  title: string | null;
+  slug: string;
+  price: number | string | null;
+  category?: string | null;
+  image?: string | null;
+  images?: unknown;
+};
+
+type RowState =
+  | { kind: "ok"; line: CartLine; product: ProductRow; image: string | null }
+  | { kind: "missing"; line: CartLine };
 
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>(initialItems);
-  const [coupon, setCoupon] = useState("ZIVIA20");
+  const [hydrated, setHydrated] = useState(false);
+  const [lines, setLines] = useState<CartLine[]>([]);
+  const [rows, setRows] = useState<ProductRow[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [coupon, setCoupon] = useState("");
 
-  const productsTotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.qty, 0),
-    [items],
-  );
+  const syncFromStorage = useCallback(() => {
+    setLines(readCartLines());
+  }, []);
+
+  useEffect(() => {
+    setHydrated(true);
+    syncFromStorage();
+  }, [syncFromStorage]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const onCart = () => syncFromStorage();
+    window.addEventListener("zivia-cart", onCart);
+    return () => window.removeEventListener("zivia-cart", onCart);
+  }, [hydrated, syncFromStorage]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const slugs = lines.map((l) => l.slug);
+    if (slugs.length === 0) {
+      setRows([]);
+      setLoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+
+    (async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, title, slug, price, category, image, images")
+        .in("slug", slugs);
+
+      if (cancelled) return;
+      setLoading(false);
+      if (error) {
+        setLoadError("Məhsullar yüklənmədi. İnternet bağlantısını yoxlayın.");
+        setRows([]);
+        return;
+      }
+      setRows((data ?? []) as ProductRow[]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, lines]);
+
+  const bySlug = useMemo(() => {
+    const m = new Map<string, ProductRow>();
+    for (const r of rows) {
+      if (r.slug) m.set(r.slug, r);
+    }
+    return m;
+  }, [rows]);
+
+  const displayRows: RowState[] = useMemo(() => {
+    return lines.map((line) => {
+      const product = bySlug.get(line.slug);
+      if (!product) return { kind: "missing" as const, line };
+      return {
+        kind: "ok" as const,
+        line,
+        product,
+        image: primaryProductImageUrl(product),
+      };
+    });
+  }, [lines, bySlug]);
+
+  const productsTotal = useMemo(() => {
+    let sum = 0;
+    for (const r of displayRows) {
+      if (r.kind !== "ok") continue;
+      sum += Number(r.product.price ?? 0) * r.line.qty;
+    }
+    return sum;
+  }, [displayRows]);
+
   const grandTotal = productsTotal + shippingFee + taxFee;
 
-  function increaseQty(id: string) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, qty: item.qty + 1 } : item)),
+  function increaseQty(slug: string) {
+    const cur = readCartLines();
+    const next = cur.map((item) =>
+      item.slug === slug ? { ...item, qty: Math.min(99, item.qty + 1) } : item,
     );
+    writeCartLines(next);
+    setLines(next);
   }
 
-  function decreaseQty(id: string) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: Math.max(1, item.qty - 1) } : item,
-      ),
+  function decreaseQty(slug: string) {
+    const cur = readCartLines();
+    const next = cur.map((item) =>
+      item.slug === slug ? { ...item, qty: Math.max(1, item.qty - 1) } : item,
     );
+    writeCartLines(next);
+    setLines(next);
   }
 
-  function removeItem(id: string) {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  function removeLine(slug: string) {
+    const cur = readCartLines();
+    const next = cur.filter((item) => item.slug !== slug);
+    writeCartLines(next);
+    setLines(next);
+  }
+
+  if (!hydrated) {
+    return (
+      <div className="space-y-4 px-3 py-4 md:px-4 lg:px-5">
+        <h1 className="font-display text-3xl leading-none text-stone-900 md:text-4xl">
+          Səbət
+        </h1>
+        <p className="text-sm text-stone-500">Yüklənir…</p>
+      </div>
+    );
   }
 
   return (
@@ -87,81 +164,137 @@ export default function CartPage() {
       <div className="grid gap-4 lg:grid-cols-[1.85fr_1fr]">
         <section className="app-surface p-3 md:p-4">
           <h2 className="text-lg font-semibold text-stone-900">
-            Seçilmiş Məhsullar ({items.length})
+            Seçilmiş məhsullar ({lines.length})
           </h2>
 
-          <div className="mt-3 space-y-2.5">
-            {items.length ? (
-              items.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-xl border border-[#e3d5bf] bg-[#fdf9f1] p-2.5 md:p-3"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="h-20 w-20 rounded-lg border border-[#e7dac5] object-cover"
-                      />
-                      <div>
-                        <h3 className="text-lg font-semibold leading-tight text-stone-900">
-                          {item.title}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-[#b08a42] md:text-sm">
-                          {"★".repeat(item.rating)}
-                        </p>
-                        <p className="mt-1 text-xl font-semibold leading-none text-stone-900 md:text-2xl">
-                          {formatAzn(item.price)}
-                        </p>
-                      </div>
-                    </div>
+          {loadError ? (
+            <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {loadError}
+            </p>
+          ) : null}
 
-                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                      <div className="inline-flex items-center rounded-full border border-[#d4bf8f] bg-[#d2b06b]/75 p-0.5">
+          <div className="mt-3 space-y-2.5">
+            {loading && lines.length > 0 ? (
+              <p className="text-xs text-stone-500">Məhsul məlumatları yenilənir…</p>
+            ) : null}
+
+            {lines.length ? (
+              displayRows.map((row) =>
+                row.kind === "missing" ? (
+                  <article
+                    key={row.line.slug}
+                    className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 md:p-4"
+                  >
+                    <p className="text-sm font-medium text-stone-900">
+                      Məhsul artıq mövcud deyil
+                    </p>
+                    <p className="mt-1 text-xs text-stone-600">
+                      Slug: <span className="font-mono">{row.line.slug}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removeLine(row.line.slug)}
+                      className="app-btn-secondary mt-3 h-9 px-4 text-sm"
+                    >
+                      Səbətdən sil
+                    </button>
+                  </article>
+                ) : (
+                  <article
+                    key={row.line.slug}
+                    className="rounded-xl border border-[#e3d5bf] bg-[#fdf9f1] p-2.5 md:p-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-[#e7dac5] bg-neutral-100">
+                          {row.image &&
+                          (row.image.startsWith("http://") ||
+                            row.image.startsWith("https://")) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={row.image}
+                              alt={row.product.title ?? "Məhsul"}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-400">
+                              Şəkil yoxdur
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold leading-tight text-stone-900">
+                            <Link
+                              href={`/products/${encodeURIComponent(row.line.slug)}`}
+                              className="hover:text-[#8b6b2c]"
+                            >
+                              {row.product.title ?? "Məhsul"}
+                            </Link>
+                          </h3>
+                          {row.product.category ? (
+                            <p className="mt-0.5 text-xs text-stone-500">
+                              {row.product.category}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-xl font-semibold leading-none text-stone-900 md:text-2xl">
+                            {formatAzn(Number(row.product.price ?? 0))}
+                            {row.line.qty > 1 ? (
+                              <span className="ml-1 text-sm font-normal text-stone-600">
+                                × {row.line.qty}
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <div className="inline-flex items-center rounded-full border border-[#d4bf8f] bg-[#d2b06b]/75 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => decreaseQty(row.line.slug)}
+                            className="h-8 w-9 rounded-full text-lg leading-none text-stone-900 transition hover:bg-[#b9934b]/20"
+                            aria-label="Azalt"
+                          >
+                            −
+                          </button>
+                          <span className="inline-flex min-w-8 justify-center text-base font-medium text-stone-900">
+                            {row.line.qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => increaseQty(row.line.slug)}
+                            className="h-8 w-9 rounded-full text-lg leading-none text-stone-900 transition hover:bg-[#b9934b]/20"
+                            aria-label="Artır"
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => decreaseQty(item.id)}
-                          className="h-8 w-9 rounded-full text-lg leading-none text-stone-900 transition hover:bg-[#b9934b]/20"
-                          aria-label="Azalt"
+                          onClick={() => removeLine(row.line.slug)}
+                          className="app-btn-secondary h-9 min-w-[84px] px-4 text-sm leading-none"
                         >
-                          −
-                        </button>
-                        <span className="inline-flex min-w-8 justify-center text-base font-medium text-stone-900">
-                          {item.qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => increaseQty(item.id)}
-                          className="h-8 w-9 rounded-full text-lg leading-none text-stone-900 transition hover:bg-[#b9934b]/20"
-                          aria-label="Artır"
-                        >
-                          +
+                          Sil
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="app-btn-secondary h-9 min-w-[84px] px-4 text-sm leading-none"
-                      >
-                        Sil
-                      </button>
                     </div>
-                  </div>
-                </article>
-              ))
+                  </article>
+                ),
+              )
             ) : (
-              <p className="rounded-xl border border-dashed border-[#dbc9aa] bg-[#fffaf1] p-4 text-sm text-stone-600">
-                Səbətiniz hazırda boşdur.
-              </p>
+              <div className="rounded-xl border border-dashed border-[#dbc9aa] bg-[#fffaf1] p-4 text-sm text-stone-600">
+                <p>Səbətiniz boşdur.</p>
+                <Link href="/products" className="mt-2 inline-block text-[#8b6b2c] underline">
+                  Məhsullara keç
+                </Link>
+              </div>
             )}
           </div>
         </section>
 
         <aside className="app-surface h-fit p-3 md:p-4">
           <h2 className="font-display text-2xl leading-none text-stone-900 md:text-3xl">
-            Sifariş Xülasəsi
+            Sifariş xülasəsi
           </h2>
 
           <div className="mt-3 space-y-2 rounded-xl border border-[#e4d7c2] bg-[#fdf9f1] p-3 text-sm leading-tight text-stone-900 md:text-base">
@@ -171,11 +304,11 @@ export default function CartPage() {
             </div>
             <div className="flex items-center justify-between gap-2">
               <span>Çatdırılma</span>
-              <span>{shippingFee ? formatAzn(shippingFee) : "Çatdırılır"}</span>
+              <span>{shippingFee ? formatAzn(shippingFee) : "Pulsuz / WhatsApp"}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span>Vergi</span>
-              <span>{formatAzn(taxFee)}</span>
+              <span>{taxFee ? formatAzn(taxFee) : "—"}</span>
             </div>
           </div>
 
@@ -184,27 +317,31 @@ export default function CartPage() {
             <input
               value={coupon}
               onChange={(e) => setCoupon(e.target.value)}
+              placeholder="Tezliklə"
               className="mt-2 h-10 w-full rounded-xl border border-[#ddd0bb] bg-[#f3ecdf] px-3 text-sm text-stone-700 outline-none focus:border-[#b08a42] md:h-11 md:text-base"
             />
           </div>
 
           <div className="mt-4 border-t border-[#e3d6c1] pt-3">
             <div className="flex items-center justify-between text-base leading-none text-stone-900 md:text-xl">
-              <span className="font-semibold">Cəmi Qiymət</span>
+              <span className="font-semibold">Cəmi</span>
               <span className="font-semibold">{formatAzn(grandTotal)}</span>
             </div>
             <p className="mt-1 text-xs text-stone-600 md:text-sm">
-              Zəhmət olmasa təsdiqləyin
+              Ödəniş hələ aktiv deyil — satıcı ilə WhatsApp üzərindən razılaşın.
             </p>
           </div>
 
-          <button type="button" className="app-btn-primary mt-3 w-full justify-center">
-            Ödənişə keç
+          <button
+            type="button"
+            disabled
+            className="app-btn-primary mt-3 w-full cursor-not-allowed justify-center opacity-60"
+          >
+            Ödəniş (tezliklə)
           </button>
 
           <div className="mt-3 space-y-1 text-center text-xs leading-tight text-stone-800 md:text-sm">
-            <p>Sifarişi Təsdiqlə</p>
-            <p>Bəyənilənlərə əlavə et</p>
+            <p>Səbət brauzerinizdə saxlanılır</p>
           </div>
         </aside>
       </div>

@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import TrackSellerProfileView from "@/components/analytics/TrackSellerProfileView";
 import ProductCard from "@/components/ProductCard";
+import JsonLd from "@/components/JsonLd";
 import { primaryProductImageUrl } from "@/lib/product-images";
+import { buildSellerProfileJsonLd } from "@/lib/jsonld";
 import { initialsFromName, normalizeSocialUrl } from "@/lib/social-links";
+import { getSiteUrl, toAbsoluteUrl } from "@/lib/site";
 import { supabase } from "@/lib/supabase";
 
 export async function generateMetadata({
@@ -79,8 +82,26 @@ export default async function SellerPage({
   const tt = normalizeSocialUrl(seller.tiktok, "tiktok");
   const initials = initialsFromName(String(seller.name ?? "?"));
 
+  const base = getSiteUrl();
+  const sellerPageUrl = `${base}/sellers/${encodeURIComponent(slug)}`;
+  const sameAs = [wa, ig, tt].filter(
+    (u): u is string => typeof u === "string" && /^https?:\/\//i.test(u),
+  );
+  const sellerAvatarAbs = toAbsoluteUrl(
+    base,
+    typeof seller.avatar === "string" ? seller.avatar : null,
+  );
+  const sellerJsonLd = buildSellerProfileJsonLd({
+    pageUrl: sellerPageUrl,
+    name: String(seller.name ?? "Satıcı"),
+    description: typeof seller.description === "string" ? seller.description : null,
+    imageUrl: sellerAvatarAbs ?? undefined,
+    sameAs,
+  });
+
   return (
     <main className="space-y-4 px-3 pt-3 text-neutral-900 md:px-4">
+      <JsonLd id="zivia-seller-jsonld" data={sellerJsonLd} />
       <TrackSellerProfileView sellerSlug={slug} />
 
       <section className="app-surface overflow-hidden p-4">

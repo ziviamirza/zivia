@@ -59,6 +59,8 @@ export default async function DashboardPage() {
   type PerProduct = { views: number; wa: number };
   const statsByProductId = new Map<number, PerProduct>();
   let profileViews30: number | null = null;
+  let totalProductViews30 = 0;
+  let totalWhatsappClicks30 = 0;
 
   function bumpProduct(pid: number, key: keyof PerProduct) {
     let row = statsByProductId.get(pid);
@@ -77,9 +79,13 @@ export default async function DashboardPage() {
       const pidRaw = (r as { product_id?: number | null }).product_id;
       const pid = pidRaw != null && Number.isFinite(Number(pidRaw)) ? Number(pidRaw) : null;
 
-      if (t === "product_view" && pid != null) bumpProduct(pid, "views");
-      else if (t === "whatsapp_click" && pid != null) bumpProduct(pid, "wa");
-      else if (t === "seller_profile_view") profileViews++;
+      if (t === "product_view" && pid != null) {
+        totalProductViews30++;
+        bumpProduct(pid, "views");
+      } else if (t === "whatsapp_click" && pid != null) {
+        totalWhatsappClicks30++;
+        bumpProduct(pid, "wa");
+      } else if (t === "seller_profile_view") profileViews++;
     }
     profileViews30 = profileViews;
   }
@@ -106,15 +112,17 @@ export default async function DashboardPage() {
     stock_quantity?: number | null;
   }>;
 
-  const totalRevenueEstimate = productRows.reduce((sum, p) => {
-    const price = Number(p.price ?? 0);
-    return sum + price * 10;
-  }, 0);
   const activeListings = productRows.filter(
     (p) => (p.is_published ?? true) && Number(p.stock_quantity ?? 0) > 0,
   ).length;
-  const activeOrdersEstimate = Math.max(0, Math.round(activeListings * 0.6));
-  const reviewCountEstimate = Math.max(0, Math.round(productCount * 1.2));
+
+  const fmtAzn = (n: number) =>
+    new Intl.NumberFormat("az-AZ", {
+      style: "currency",
+      currency: "AZN",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(n);
 
   return (
     <main className="min-h-screen px-3 py-4 md:px-4 md:py-6">
@@ -171,7 +179,6 @@ export default async function DashboardPage() {
             </div>
             <div className="mt-2 text-center">
               <h2 className="text-2xl font-bold text-stone-900">{seller.name}</h2>
-              <p className="text-base text-[#b08a42]">★★★★★</p>
               <p className="mt-1 text-sm text-stone-500">
                 {seller.description || "Premium zərgərlik satıcısı"}
               </p>
@@ -190,124 +197,58 @@ export default async function DashboardPage() {
                 Əlaqə
               </Link>
             </div>
-            <div className="mt-4 space-y-2 border-t border-[#e8dac5] pt-3 text-base text-stone-800">
-              <div className="flex items-center justify-between">
-                <span>5 Ulduz</span>
-                <span className="font-semibold">{reviewCountEstimate} Rəy</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Active Listings</span>
-                <span className="font-semibold">({activeListings})</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Profil baxışı</span>
-                <span className="font-semibold">{profileViews30 ?? 0}</span>
-              </div>
-            </div>
           </section>
 
           <section className="app-surface p-3">
             <h2 className="font-display text-3xl leading-none text-stone-900">
-              Statistika & Analitika
+              Statistika
             </h2>
-            <div className="mt-3 grid gap-2 md:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  Satıcı
-                </span>
-                <input
-                  readOnly
-                  value={seller.name}
-                  className="h-10 w-full rounded-xl border border-[#dfd1b8] bg-[#f4ecdd] px-3 text-sm text-stone-800"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  Aylıq satışlar
-                </span>
-                <select className="h-10 w-full rounded-xl border border-[#dfd1b8] bg-[#f4ecdd] px-3 text-sm text-stone-800 outline-none">
-                  <option>Məhsul Reytinqləri</option>
-                  <option>Aylıq Satışlar</option>
-                  <option>Color</option>
-                  <option>Cash</option>
-                </select>
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  Məhsul color
-                </span>
-                <select className="h-10 w-full rounded-xl border border-[#dfd1b8] bg-[#f4ecdd] px-3 text-sm text-stone-800 outline-none">
-                  <option>Cash</option>
-                  <option>Color</option>
-                </select>
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  Məhsul reytinqləri
-                </span>
-                <select className="h-10 w-full rounded-xl border border-[#dfd1b8] bg-[#f4ecdd] px-3 text-sm text-stone-800 outline-none">
-                  <option>Aylıq satışlar</option>
-                  <option>Aylıq satışlar</option>
-                  <option>Color</option>
-                  <option>Cash</option>
-                </select>
-              </label>
-            </div>
+            <p className="mt-2 text-xs text-stone-500">
+              Son 30 gün — vitrin baxışı və WhatsApp klikləri (real hadisələr).
+            </p>
 
             <div className="mt-4 space-y-1 rounded-xl border border-[#e3d6c2] bg-[#fdf9f1] p-3 text-base text-stone-800">
-              <div className="flex items-center justify-between">
-                <span>Total Satış</span>
-                <span className="font-semibold">
-                  {new Intl.NumberFormat("az-AZ", {
-                    style: "currency",
-                    currency: "AZN",
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }).format(totalRevenueEstimate)}
+              <div className="flex items-center justify-between gap-2">
+                <span>Məhsul baxışı</span>
+                <span className="font-semibold tabular-nums">
+                  {evErr ? "—" : totalProductViews30}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Aktiv Sifarişlər</span>
-                <span className="font-semibold">{activeOrdersEstimate}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span>WhatsApp klikləri</span>
+                <span className="font-semibold tabular-nums">
+                  {evErr ? "—" : totalWhatsappClicks30}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Aktiv Məhsullar</span>
-                <span className="font-semibold">{activeListings}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span>Profil baxışı</span>
+                <span className="font-semibold tabular-nums">
+                  {evErr ? "—" : (profileViews30 ?? 0)}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Məhsul sayı</span>
-                <span className="font-semibold">{productCount}</span>
+              <div className="mt-2 border-t border-[#e8dac5] pt-2" />
+              <div className="flex items-center justify-between gap-2">
+                <span>Aktiv vitrin</span>
+                <span className="font-semibold tabular-nums">{activeListings}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span>Məhsul cəmi</span>
+                <span className="font-semibold tabular-nums">{productCount}</span>
               </div>
             </div>
 
             <Link
               href="/dashboard/profile"
-              className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#b08a42] px-4 text-lg font-semibold text-white transition hover:bg-[#8b6b2c]"
+              className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#b08a42] px-4 text-sm font-semibold text-white transition hover:bg-[#8b6b2c]"
             >
-              Rəy Bildir
+              Profili redaktə et
             </Link>
-
-            <div className="mt-3 flex items-center justify-center gap-3 text-sm font-medium text-stone-700">
-              <button type="button" className="rounded-md bg-[#b08a42] px-2 text-white">
-                1
-              </button>
-              <button type="button">2</button>
-              <button type="button">3</button>
-              <span>...</span>
-              <button type="button">5</button>
-              <Link
-                href="/dashboard/new-product"
-                className="rounded-md border border-[#d8c7ab] bg-[#f7efe0] px-3 py-0.5"
-              >
-                Yüklə →
-              </Link>
-            </div>
           </section>
 
           <section className="app-surface p-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="font-display text-3xl leading-none text-stone-900">
-                Gəlir Kartları ({productCount})
+                Məhsullar ({productCount})
               </h2>
               <Link
                 href="/cart"
@@ -323,7 +264,7 @@ export default async function DashboardPage() {
                   Hələ məhsul əlavə etməmisiniz
                 </p>
                 <p className="mt-1 text-sm text-stone-600">
-                  Gəlir kartları burada görünməsi üçün ilk məhsulunuzu əlavə edin.
+                  Məhsullarınızı əlavə edin — baxış və WhatsApp statistikası burada görünəcək.
                 </p>
                 <Link href="/dashboard/new-product" className="app-btn-primary mt-4 px-5">
                   İlk məhsulu əlavə et
@@ -334,12 +275,10 @@ export default async function DashboardPage() {
                 {productRows.slice(0, 6).map((product) => {
                   const pid = Number(product.id);
                   const per =
-                    profileViews30 !== null
+                    profileViews30 !== null && !evErr
                       ? (statsByProductId.get(pid) ?? { views: 0, wa: 0 })
                       : { views: 0, wa: 0 };
-                  const salesCount = Math.max(1, per.views > 0 ? per.views : 10);
                   const price = Number(product.price ?? 0);
-                  const estRevenue = salesCount * price;
                   const pub = product.is_published !== false;
                   const sq = Number(product.stock_quantity ?? 0);
                   const imageUrl = primaryProductImageUrl(product);
@@ -374,29 +313,18 @@ export default async function DashboardPage() {
                         <p className="line-clamp-1 text-lg font-semibold leading-tight text-stone-900">
                           {product.title || "Adsız məhsul"}
                         </p>
-                        <p className="text-xl font-semibold text-stone-900">
-                          {new Intl.NumberFormat("az-AZ", {
-                            style: "currency",
-                            currency: "AZN",
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }).format(price)}
-                        </p>
-                        <p className="text-sm text-[#b08a42]">★★★★★</p>
-                        <div className="mt-1 text-base text-stone-800">
-                          <div className="flex items-center justify-between">
-                            <span>Satış Sayı</span>
-                            <span>{salesCount} Ədəd</span>
+                        <p className="text-xl font-semibold text-stone-900">{fmtAzn(price)}</p>
+                        <div className="mt-1 space-y-0.5 text-sm text-stone-800">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-stone-600">Baxış (30 g.)</span>
+                            <span className="font-semibold tabular-nums">
+                              {evErr ? "—" : per.views}
+                            </span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span>Cəmi Gəlir</span>
-                            <span>
-                              {new Intl.NumberFormat("az-AZ", {
-                                style: "currency",
-                                currency: "AZN",
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }).format(estRevenue)}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-stone-600">WhatsApp</span>
+                            <span className="font-semibold tabular-nums">
+                              {evErr ? "—" : per.wa}
                             </span>
                           </div>
                         </div>

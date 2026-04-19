@@ -1,14 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AddToCartButton from "@/components/AddToCartButton";
+import FavoriteHeartButton from "@/components/FavoriteHeartButton";
 import TrackProductView from "@/components/analytics/TrackProductView";
 import TrackWhatsAppProductClick from "@/components/analytics/TrackWhatsAppProductClick";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductCard from "@/components/ProductCard";
+import JsonLd from "@/components/JsonLd";
 import { formatAzn } from "@/lib/format";
 import {
   primaryProductImageUrl,
   productRowImageUrls,
 } from "@/lib/product-images";
+import { buildProductDetailJsonLd } from "@/lib/jsonld";
+import { getSiteUrl, toAbsoluteUrl } from "@/lib/site";
 import { supabase } from "@/lib/supabase";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -55,15 +61,35 @@ async function fetchProductBySlug(slug: string) {
   return product as ProductWithSeller;
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await fetchProductBySlug(slug);
   if (!product) return { title: "Tapılmadı" };
   const title = product.title ?? product.name ?? "Məhsul";
-  const desc = product.description ?? "";
+  const desc = (product.description ?? "").trim().slice(0, 155);
+  const base = getSiteUrl();
+  const pageUrl = `${base}/products/${encodeURIComponent(slug)}`;
+  const ogImage = toAbsoluteUrl(base, primaryProductImageUrl(product));
+
   return {
     title,
-    description: desc.slice(0, 155),
+    description: desc || undefined,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      type: "website",
+      url: pageUrl,
+      title,
+      description: desc || undefined,
+      ...(ogImage
+        ? { images: [{ url: ogImage, alt: title }] }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: desc || undefined,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   };
 }
 
@@ -78,6 +104,32 @@ export default async function ProductDetailPage({ params }: Props) {
   const displayName = product.title ?? product.name ?? "Məhsul";
   const priceNum = Number(product.price ?? 0);
   const galleryUrls = productRowImageUrls(product);
+  const base = getSiteUrl();
+  const productPageUrl = `${base}/products/${encodeURIComponent(slug)}`;
+  const jsonLdImages = galleryUrls
+    .map((u) => toAbsoluteUrl(base, u))
+    .filter((u): u is string => Boolean(u));
+  const stockRaw = (product as { stock_quantity?: unknown }).stock_quantity;
+  const stockQuantity =
+    typeof stockRaw === "number" && Number.isFinite(stockRaw) ? stockRaw : null;
+
+  const productJsonLd = buildProductDetailJsonLd({
+    base,
+    productPageUrl,
+    name: displayName,
+    description: product.description,
+    imageUrls: jsonLdImages,
+    price: priceNum,
+    currency: "AZN",
+    sku: String(product.slug ?? slug),
+    category: product.category,
+    sellerName: seller?.name ?? null,
+    sellerPageUrl: seller?.slug
+      ? `${base}/sellers/${encodeURIComponent(seller.slug)}`
+      : null,
+    stockQuantity,
+  });
+
   const wa = seller?.whatsapp
     ? `https://wa.me/${seller.whatsapp}?text=${encodeURIComponent(
         `Salam, Zivia-da "${displayName}" məhsulu ilə maraqlanıram.`,
@@ -103,6 +155,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-4 px-3 pt-3 md:px-4">
+      <JsonLd id="zivia-product-jsonld" data={productJsonLd} />
       {trackSlug ? <TrackProductView productSlug={trackSlug} /> : null}
       <nav className="px-1 text-xs text-stone-500">
         <Link href="/" className="hover:text-stone-800">
@@ -124,7 +177,6 @@ export default async function ProductDetailPage({ params }: Props) {
         ) : null}
         <h1 className="mt-1 font-display text-2xl text-stone-900">{displayName}</h1>
         <p className="mt-2 text-xl font-semibold text-[#7a5b24]">{formatAzn(priceNum)}</p>
-        <p className="mt-1 text-xs text-[#8b6b2c]">{"★".repeat(5)} 4.9</p>
         {product.description ? (
           <p className="mt-3 text-sm leading-relaxed text-stone-600">{product.description}</p>
         ) : null}
@@ -166,20 +218,39 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         ) : null}
 
-        <div className="mt-4">
-          {wa !== "#" && trackSlug ? (
-            <TrackWhatsAppProductClick
-              href={wa}
-              productSlug={trackSlug}
-              className="app-btn-primary w-full justify-center"
-            >
-              WhatsApp ilə yaz
-            </TrackWhatsAppProductClick>
-          ) : (
-            <span className="inline-flex w-full justify-center rounded-xl bg-stone-200 px-4 py-2.5 text-sm font-medium text-stone-500">
-              WhatsApp əlavə edilməyib
-            </span>
-          )}
+        <div className="mt-4 flex gap-2">
+          {trackSlug ? (
+            <FavoriteHeartButton
+              slug={trackSlug}
+              size="md"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dfd1b8] bg-white text-[#7b5f2f] transition hover:bg-[#f6efe3]"
+            />
+          ) : null}
+          <div className="min-w-0 flex-1 space-y-2">
+            {trackSlug ? (
+              <AddToCartButton
+                slug={trackSlug}
+                goToCart={false}
+                title="Səbətə əlavə et"
+                className="zivia-btn-secondary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
+              >
+                Səbətə əlavə et
+              </AddToCartButton>
+            ) : null}
+            {wa !== "#" && trackSlug ? (
+              <TrackWhatsAppProductClick
+                href={wa}
+                productSlug={trackSlug}
+                className="app-btn-primary w-full justify-center"
+              >
+                WhatsApp ilə yaz
+              </TrackWhatsAppProductClick>
+            ) : (
+              <span className="inline-flex w-full justify-center rounded-xl bg-stone-200 px-4 py-2.5 text-sm font-medium text-stone-500">
+                WhatsApp əlavə edilməyib
+              </span>
+            )}
+          </div>
         </div>
       </section>
 

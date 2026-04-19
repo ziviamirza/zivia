@@ -1,5 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  allowAnalyticsEvent,
+  clientKeyFromRequest,
+} from "@/lib/analytics-rate-limit";
 
 type Body = {
   event?: string;
@@ -19,6 +23,11 @@ function createAnonServerClient() {
 }
 
 export async function POST(req: Request) {
+  const key = clientKeyFromRequest(req);
+  if (!allowAnalyticsEvent(key)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
