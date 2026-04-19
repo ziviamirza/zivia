@@ -1,33 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
+import { resolveAdminJwtSecret } from "@/lib/admin-config";
 
 export const ADMIN_COOKIE = "zivia_admin";
 
-/** Vercel/UI-dən kopyalayıb dırnaq qalsa təmizləyir. */
-export function cleanEnvValue(raw: string | undefined): string {
-  if (!raw) return "";
-  let s = raw.trim();
-  if (
-    (s.startsWith('"') && s.endsWith('"')) ||
-    (s.startsWith("'") && s.endsWith("'"))
-  ) {
-    s = s.slice(1, -1).trim();
-  }
-  return s;
-}
-
 function getSecret(): Uint8Array | null {
-  const s = cleanEnvValue(process.env.ADMIN_JWT_SECRET);
+  const s = resolveAdminJwtSecret();
   if (!s || s.length < 24) return null;
   return new TextEncoder().encode(s);
 }
 
+/** JWT yaradıla bilirsə admin girişi aktiv sayılır (standart dəyərlər və ya .env). */
 export function adminAuthConfigured(): boolean {
-  const jwt = cleanEnvValue(process.env.ADMIN_JWT_SECRET);
-  return Boolean(
-    cleanEnvValue(process.env.ADMIN_EMAIL) &&
-      cleanEnvValue(process.env.ADMIN_CODE) &&
-      jwt.length >= 24,
-  );
+  return resolveAdminJwtSecret().length >= 24;
 }
 
 export async function signAdminJwt(): Promise<string | null> {

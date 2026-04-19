@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 
-export default function AdminLoginForm({ nextPath }: { nextPath: string }) {
-  const [email, setEmail] = useState("");
+export default function AdminLoginForm({
+  nextPath,
+  defaultEmail,
+}: {
+  nextPath: string;
+  defaultEmail: string;
+}) {
+  const [email, setEmail] = useState(defaultEmail);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

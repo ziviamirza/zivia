@@ -12,6 +12,9 @@ export default async function AdminPanelLayout({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="font-display text-lg tracking-tight text-[#e8d5b0]">Zivia admin</span>
+            <span className="hidden text-[10px] text-stone-500 sm:inline">
+              (Satıcı / Supabase hesabından ayrı)
+            </span>
             <nav className="flex flex-wrap gap-2">
               <Link
                 href="/admin"

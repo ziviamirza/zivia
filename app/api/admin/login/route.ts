@@ -11,7 +11,7 @@ function cookieSecure(): boolean {
 export async function POST(req: Request) {
   if (!adminAuthConfigured()) {
     return NextResponse.json(
-      { error: "Admin girişi serverdə konfiqurasiya edilməyib (ADMIN_EMAIL, ADMIN_CODE, ADMIN_JWT_SECRET)." },
+      { error: "Admin JWT konfiqurasiyası etibarsızdır (gizli açar çox qısadır)." },
       { status: 503 },
     );
   }
