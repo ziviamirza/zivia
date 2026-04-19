@@ -26,9 +26,12 @@ const siteJsonLd = buildSiteJsonLd(siteUrl);
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   icons: {
-    icon: [{ url: "/icon", type: "image/png", sizes: "96x96" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icon", type: "image/png", sizes: "96x96" },
+    ],
     apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
-    shortcut: "/icon",
+    shortcut: "/favicon.ico",
   },
   title: {
     default: "Zivia — Premium zərgərlik bazarı",

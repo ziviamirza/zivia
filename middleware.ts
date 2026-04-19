@@ -2,14 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  /** Google və köhnə botlar /favicon.ico gözləyir; 307 əvəzinə rewrite → 200 + düzgün PNG */
-  if (request.nextUrl.pathname === "/favicon.ico") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/icon";
-    url.search = "";
-    return NextResponse.rewrite(url);
-  }
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -51,7 +43,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/favicon.ico",
-    "/((?!_next/static|_next/image|icon$|apple-icon$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|icon$|apple-icon$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
