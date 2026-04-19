@@ -1,7 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ADMIN_COOKIE, verifyAdminJwt } from "@/lib/admin-token";
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  if (path.startsWith("/admin")) {
+    if (path === "/admin/login" || path.startsWith("/admin/login/")) {
+      return NextResponse.next();
+    }
+    const token = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (!(await verifyAdminJwt(token))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
