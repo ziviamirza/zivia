@@ -20,7 +20,7 @@ const navItems: Item[] = [
   { href: "/admin/users", label: "İstifadəçilər" },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -40,6 +40,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={[
                 "block rounded-xl px-3 py-2 text-sm transition",
                 isActive
@@ -54,7 +55,7 @@ export default function AdminSidebar() {
       </nav>
 
       <div className="mt-5 border-t border-stone-200 pt-4">
-        <Link href="/" className="block rounded-xl px-3 py-2 text-sm text-stone-600 hover:bg-stone-100">
+        <Link href="/" onClick={onNavigate} className="block rounded-xl px-3 py-2 text-sm text-stone-600 hover:bg-stone-100">
           Sayta keç
         </Link>
         <form method="post" action="/admin/logout" className="mt-1">
