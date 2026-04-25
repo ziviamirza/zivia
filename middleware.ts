@@ -19,6 +19,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (path.startsWith("/api/admin")) {
+    if (path === "/api/admin/login" || path.startsWith("/api/admin/login/")) {
+      return NextResponse.next();
+    }
+    const apiToken = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (!(await verifyAdminJwt(apiToken))) {
+      return NextResponse.json({ error: "Admin girişi tələb olunur." }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

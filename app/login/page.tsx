@@ -55,6 +55,23 @@ export default function LoginPage() {
     setNotice(null);
 
     const trimmedEmail = email.trim();
+
+    // Allow admin to sign in from regular login page using admin email + code.
+    try {
+      const adminRes = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, code: password }),
+        credentials: "same-origin",
+      });
+      if (adminRes.ok) {
+        window.location.assign("/admin");
+        return;
+      }
+    } catch {
+      // Ignore network issues here and continue with seller auth flow.
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password,

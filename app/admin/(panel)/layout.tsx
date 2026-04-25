@@ -35,6 +35,12 @@ export default async function AdminPanelLayout({
                 Satıcılar
               </Link>
               <Link
+                href="/admin/users"
+                className="rounded-lg px-2.5 py-1 text-stone-300 transition hover:bg-stone-800 hover:text-white"
+              >
+                İstifadəçilər
+              </Link>
+              <Link
                 href="/"
                 className="rounded-lg px-2.5 py-1 text-stone-400 transition hover:bg-stone-800 hover:text-white"
               >

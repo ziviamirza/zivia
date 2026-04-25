@@ -13,12 +13,21 @@ export default async function AdminHomePage() {
   ]);
 
   let hiddenProducts: number | null = null;
+  let authUserTotal: number | null = null;
   if (service) {
     const { count } = await service
       .from("products")
       .select("*", { count: "exact", head: true })
       .eq("is_published", false);
     hiddenProducts = count;
+
+    const { data: authPage, error: authListErr } = await service.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+    if (!authListErr && authPage) {
+      authUserTotal = authPage.total;
+    }
   }
 
   return (
@@ -42,7 +51,7 @@ export default async function AdminHomePage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Məhsullar (cəmi)" value={productCount ?? "—"} />
         <StatCard label="Satıcılar" value={sellerCount ?? "—"} />
         <StatCard
@@ -50,9 +59,14 @@ export default async function AdminHomePage() {
           value={hiddenProducts != null ? String(hiddenProducts) : "—"}
           hint={mode === "anon" ? "Service açarı ilə" : undefined}
         />
+        <StatCard
+          label="Auth istifadəçiləri"
+          value={authUserTotal != null ? String(authUserTotal) : "—"}
+          hint={mode === "anon" ? "Service açarı ilə" : undefined}
+        />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/admin/products"
           className="rounded-xl border border-stone-700 bg-stone-900/50 p-4 transition hover:border-[#a8843e]/50 hover:bg-stone-900"
@@ -66,6 +80,13 @@ export default async function AdminHomePage() {
         >
           <p className="text-sm font-semibold text-[#e8d5b0]">Satıcılar</p>
           <p className="mt-1 text-xs text-stone-500">Vitrin keçidləri</p>
+        </Link>
+        <Link
+          href="/admin/users"
+          className="rounded-xl border border-stone-700 bg-stone-900/50 p-4 transition hover:border-[#a8843e]/50 hover:bg-stone-900"
+        >
+          <p className="text-sm font-semibold text-[#e8d5b0]">İstifadəçilər</p>
+          <p className="mt-1 text-xs text-stone-500">Supabase auth siyahısı və hesab silmə</p>
         </Link>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif, Outfit } from "next/font/google";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Link from "next/link";
 import JsonLd from "@/components/JsonLd";
 import { buildSiteJsonLd } from "@/lib/jsonld";
 import { getSiteUrl } from "@/lib/site";
