@@ -30,31 +30,31 @@ export default async function AdminProductsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">Məhsullar</h1>
-          <p className="mt-1 text-xs text-stone-400">
+          <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Kataloq</h1>
+          <p className="mt-1 text-xs text-stone-500">
             Son 200 qeyd · oxuma:{" "}
-            <span className="font-mono text-[#d4b87a]">{mode}</span>
+            <span className="font-mono text-stone-700">{mode}</span>
           </p>
         </div>
-        <Link href="/products" className="text-xs font-medium text-[#d4b87a] underline">
+        <Link href="/products" className="text-xs font-medium text-[#ff7a00] underline">
           Vitrinə bax
         </Link>
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-red-900/50 bg-red-950/40 p-3 text-sm text-red-200">{error.message}</p>
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error.message}</p>
       ) : null}
 
       {mode === "service" ? (
         <p className="text-[11px] text-stone-500">
-          Silmə üçün serverdə <code className="rounded bg-black/30 px-1 font-mono">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+          Silmə üçün serverdə <code className="rounded bg-stone-100 px-1 font-mono">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
           olmalıdır.
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-stone-700">
-        <table className="min-w-full divide-y divide-stone-700 text-left text-sm">
-          <thead className="bg-stone-900/80 text-xs uppercase tracking-wide text-stone-500">
+      <div className="overflow-x-auto rounded-xl border border-[#ece7de] bg-white">
+        <table className="min-w-full divide-y divide-[#ece7de] text-left text-sm">
+          <thead className="bg-[#f8f8f6] text-xs uppercase tracking-wide text-stone-500">
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Ad</th>
@@ -70,14 +70,14 @@ export default async function AdminProductsPage() {
               <th className="px-3 py-2">Satıcı id</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-800 bg-stone-950/40">
+          <tbody className="divide-y divide-[#efebe3] bg-white">
             {rows.map((r) => (
-              <tr key={r.id} className="text-stone-200">
+              <tr key={r.id} className="text-stone-700">
                 <td className="whitespace-nowrap px-3 py-2 font-mono text-xs">{r.id}</td>
                 <td className="max-w-[200px] truncate px-3 py-2">{r.title ?? "—"}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono text-xs">
                   {r.slug ? (
-                    <Link href={`/products/${encodeURIComponent(r.slug)}`} className="text-[#d4b87a] underline">
+                    <Link href={`/products/${encodeURIComponent(r.slug)}`} className="text-[#ff7a00] underline">
                       {r.slug}
                     </Link>
                   ) : (

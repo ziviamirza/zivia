@@ -11,10 +11,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const svc = createServiceSupabaseAdmin();
   if (!svc) {
     return (
-      <div className="rounded-xl border border-amber-900/50 bg-amber-950/30 p-5 text-sm text-amber-100">
-        <p className="font-semibold text-amber-50">Auth istifadəçilərini görmək üçün</p>
-        <p className="mt-2 text-amber-100/90">
-          Server mühitinə <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <p className="font-semibold text-amber-900">Auth istifadəçilərini görmək üçün</p>
+        <p className="mt-2 text-amber-800">
+          Server mühitinə <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
           əlavə edin və yenidən deploy edin.
         </p>
       </div>
@@ -24,9 +24,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const { data, error } = await svc.auth.admin.listUsers({ page, perPage });
 
   if (error) {
-    return (
-      <p className="rounded-lg border border-red-900/50 bg-red-950/40 p-4 text-sm text-red-200">{error.message}</p>
-    );
+    return <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error.message}</p>;
   }
 
   const users = data?.users ?? [];
@@ -34,8 +32,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold text-white">Auth istifadəçiləri</h1>
-        <p className="mt-1 text-xs text-stone-400">
+        <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Sifariş / istifadəçi qeydləri</h1>
+        <p className="mt-1 text-xs text-stone-500">
           Supabase qeydiyyatı — səhifə {page}, səhifədə {perPage}. Silmə geri alınmır.
         </p>
       </div>
@@ -44,7 +42,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         {page > 1 ? (
           <a
             href={`/admin/users?page=${page - 1}`}
-            className="rounded-lg border border-stone-600 px-3 py-1.5 text-stone-300 hover:bg-stone-800"
+            className="rounded-lg border border-[#e3ddd3] px-3 py-1.5 text-stone-700 hover:bg-stone-50"
           >
             ← Əvvəlki
           </a>
@@ -52,16 +50,16 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         {users.length === perPage ? (
           <a
             href={`/admin/users?page=${page + 1}`}
-            className="rounded-lg border border-stone-600 px-3 py-1.5 text-stone-300 hover:bg-stone-800"
+            className="rounded-lg border border-[#e3ddd3] px-3 py-1.5 text-stone-700 hover:bg-stone-50"
           >
             Növbəti →
           </a>
         ) : null}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-stone-700">
-        <table className="min-w-full divide-y divide-stone-700 text-left text-sm">
-          <thead className="bg-stone-900/80 text-xs uppercase tracking-wide text-stone-500">
+      <div className="overflow-x-auto rounded-xl border border-[#ece7de] bg-white">
+        <table className="min-w-full divide-y divide-[#ece7de] text-left text-sm">
+          <thead className="bg-[#f8f8f6] text-xs uppercase tracking-wide text-stone-500">
             <tr>
               <th className="px-3 py-2">E-poçt</th>
               <th className="px-3 py-2">UUID</th>
@@ -70,15 +68,15 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
               <th className="px-3 py-2">Əməliyyat</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-800 bg-stone-950/40">
+          <tbody className="divide-y divide-[#efebe3] bg-white">
             {users.map((u) => (
-              <tr key={u.id} className="text-stone-200">
+              <tr key={u.id} className="text-stone-700">
                 <td className="max-w-[200px] truncate px-3 py-2 text-xs">{u.email ?? "—"}</td>
-                <td className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px] text-stone-400">{u.id}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-stone-400">
+                <td className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px] text-stone-500">{u.id}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-xs text-stone-500">
                   {u.created_at ? new Date(u.created_at).toLocaleString("az-AZ") : "—"}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-stone-400">
+                <td className="whitespace-nowrap px-3 py-2 text-xs text-stone-500">
                   {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString("az-AZ") : "—"}
                 </td>
                 <td className="px-3 py-2">
