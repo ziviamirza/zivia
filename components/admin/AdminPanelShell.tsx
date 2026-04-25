@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
-export default function AdminPanelShell({ children }: { children: React.ReactNode }) {
+export default function AdminPanelShell({
+  children,
+  pendingSellerCount,
+}: {
+  children: React.ReactNode;
+  pendingSellerCount: number;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -26,7 +32,7 @@ export default function AdminPanelShell({ children }: { children: React.ReactNod
 
         <div className="mt-2 flex gap-4 lg:mt-0">
           <div className="hidden lg:block">
-            <AdminSidebar />
+            <AdminSidebar pendingSellerCount={pendingSellerCount} />
           </div>
 
           <section className="min-w-0 flex-1">
@@ -45,10 +51,10 @@ export default function AdminPanelShell({ children }: { children: React.ReactNod
                 </div>
                 <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
                   <Link
-                    href="/admin/security"
+                    href="/admin/sellers"
                     className="rounded-xl border border-[#e3ddd3] px-3 py-2 text-xs text-stone-600 hover:bg-stone-50"
                   >
-                    Bildirişlər
+                    Bildirişlər{pendingSellerCount > 0 ? ` (${pendingSellerCount})` : ""}
                   </Link>
                   <Link
                     href="/admin/settings"
@@ -74,7 +80,7 @@ export default function AdminPanelShell({ children }: { children: React.ReactNod
             aria-label="Close menu overlay"
           />
           <div className="absolute left-2 top-2 bottom-2 w-[84%] max-w-[320px] overflow-y-auto">
-            <AdminSidebar onNavigate={() => setMenuOpen(false)} />
+            <AdminSidebar pendingSellerCount={pendingSellerCount} onNavigate={() => setMenuOpen(false)} />
           </div>
         </div>
       ) : null}

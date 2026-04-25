@@ -17,7 +17,7 @@ export default async function DashboardPage() {
 
   const { data: seller, error: sellerError } = await supabase
     .from("sellers")
-    .select("id, name, slug, user_id, whatsapp, description, avatar")
+    .select("id, name, slug, user_id, whatsapp, description, avatar, approval_status, review_note")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -37,6 +37,26 @@ export default async function DashboardPage() {
               Müvəqqəti texniki çətinlik ola bilər. Bir az sonra yenidən yoxlayın.
             </p>
           ) : null}
+        </div>
+      </main>
+    );
+  }
+
+  if (seller.approval_status !== "approved") {
+    return (
+      <main className="min-h-screen bg-white px-4 py-16">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <h1 className="text-2xl font-bold text-amber-900">Müraciətiniz yoxlanılır</h1>
+          <p className="mt-3 text-sm text-amber-900/90">
+            Satıcı profiliniz admin yoxlamasındadır. Təsdiqdən sonra panel tam aktiv olacaq.
+          </p>
+          {seller.approval_status === "rejected" ? (
+            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              Müraciət statusu: <strong>rejected</strong>
+              {seller.review_note ? ` — ${seller.review_note}` : ""}
+            </p>
+          ) : null}
+          <p className="mt-4 text-xs text-amber-800">Status: {seller.approval_status ?? "pending"}</p>
         </div>
       </main>
     );

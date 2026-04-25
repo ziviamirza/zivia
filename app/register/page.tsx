@@ -66,6 +66,20 @@ export default function RegisterPage() {
       return;
     }
 
+    try {
+      await fetch("/api/seller-applications/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: data.user.id,
+          email: email.trim(),
+          brandName: brandName.trim(),
+        }),
+      });
+    } catch {
+      // Bildiriş göndərilməsi bloklayıcı deyil.
+    }
+
     // Uğurlu qeydiyyat - istifadəçini login səhifəsinə yönləndir
     const params = new URLSearchParams();
     params.set("registered", "1");

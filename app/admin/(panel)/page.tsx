@@ -20,29 +20,47 @@ export default async function AdminHomePage() {
 
   const { data: recentSellers } = await db
     .from("sellers")
-    .select("id, name, created_at")
+    .select("id, name, created_at, approval_status")
     .order("id", { ascending: false })
     .limit(6);
 
   let hiddenProducts: number | null = null;
   let authUserTotal: number | null = null;
   let events30d: number | null = null;
+  let adminNotifications:
+    | Array<{ id: number; title: string; body: string | null; href: string | null; created_at: string }>
+    | null = null;
   if (service) {
     const since = new Date();
     since.setDate(since.getDate() - 30);
 
-    const [{ count }, authRes, eventRes] = await Promise.all([
+    const [{ count }, authRes, eventRes, notifRes] = await Promise.all([
       service.from("products").select("*", { count: "exact", head: true }).eq("is_published", false),
       service.auth.admin.listUsers({ page: 1, perPage: 1 }),
       service
         .from("seller_analytics_events")
         .select("*", { count: "exact", head: true })
         .gte("created_at", since.toISOString()),
+      service
+        .from("admin_notifications")
+        .select("id, title, body, href, created_at")
+        .eq("is_read", false)
+        .order("created_at", { ascending: false })
+        .limit(8),
     ]);
 
     hiddenProducts = count;
     if (!authRes.error && authRes.data) authUserTotal = authRes.data.total;
     if (!eventRes.error) events30d = eventRes.count ?? 0;
+    if (!notifRes.error) {
+      adminNotifications = (notifRes.data ?? []) as Array<{
+        id: number;
+        title: string;
+        body: string | null;
+        href: string | null;
+        created_at: string;
+      }>;
+    }
   }
 
   return (
@@ -93,6 +111,28 @@ export default async function AdminHomePage() {
           </ul>
         </section>
       </div>
+
+      <section className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-stone-900">Admin bildirişləri</h2>
+          <Link href="/admin/sellers" className="text-xs text-[#ff7a00] underline">
+            Satıcı müraciətlərinə bax
+          </Link>
+        </div>
+        <ul className="space-y-2 text-sm text-stone-700">
+          {(adminNotifications ?? []).map((n) => (
+            <li key={n.id} className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">
+              <p className="font-medium">{n.title}</p>
+              {n.body ? <p className="text-xs text-stone-500">{n.body}</p> : null}
+            </li>
+          ))}
+          {(adminNotifications ?? []).length === 0 ? (
+            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2 text-stone-500">
+              Yeni bildiriş yoxdur.
+            </li>
+          ) : null}
+        </ul>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Link

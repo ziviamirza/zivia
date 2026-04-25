@@ -45,6 +45,7 @@ export default function NewProductPage() {
   const [stockQty, setStockQty] = useState("1");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [generalError, setGeneralError] = useState("");
+  const [approvalWarning, setApprovalWarning] = useState("");
 
   const titleId = `${baseId}-title`;
   const descId = `${baseId}-desc`;
@@ -159,6 +160,7 @@ export default function NewProductPage() {
 
   async function handleSubmit() {
     setGeneralError("");
+    setApprovalWarning("");
     const err = validateForm();
     if (err) {
       setFieldErrors(err);
@@ -199,6 +201,12 @@ export default function NewProductPage() {
 
     if (!seller) {
       setGeneralError("Bu hesab üçün satıcı profili tapılmadı.");
+      setLoading(false);
+      return;
+    }
+
+    if (seller.approval_status !== "approved") {
+      setApprovalWarning("Profiliniz admin tərəfindən təsdiqlənməyib. Məhsul əlavə etmək üçün əvvəlcə təsdiq gözlənilir.");
       setLoading(false);
       return;
     }
@@ -333,6 +341,12 @@ export default function NewProductPage() {
             role="alert"
           >
             {generalError}
+          </div>
+        ) : null}
+
+        {approvalWarning ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {approvalWarning}
           </div>
         ) : null}
 

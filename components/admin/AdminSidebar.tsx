@@ -20,7 +20,13 @@ const navItems: Item[] = [
   { href: "/admin/users", label: "İstifadəçilər" },
 ];
 
-export default function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
+export default function AdminSidebar({
+  onNavigate,
+  pendingSellerCount,
+}: {
+  onNavigate?: () => void;
+  pendingSellerCount: number;
+}) {
   const pathname = usePathname();
 
   return (
@@ -49,6 +55,11 @@ export default function AdminSidebar({ onNavigate }: { onNavigate?: () => void }
               ].join(" ")}
             >
               {item.label}
+              {item.href === "/admin/sellers" && pendingSellerCount > 0 ? (
+                <span className="ml-2 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b00]">
+                  {pendingSellerCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}

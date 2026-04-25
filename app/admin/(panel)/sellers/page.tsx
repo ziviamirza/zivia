@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AdminDeleteButton from "@/components/admin/AdminDeleteButton";
+import AdminSellerApprovalButton from "@/components/admin/AdminSellerApprovalButton";
 import { createAnonSupabaseServer } from "@/lib/supabase-anon-server";
 import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
 
@@ -8,6 +9,7 @@ type Row = {
   name: string | null;
   slug: string | null;
   user_id?: string | null;
+  approval_status?: "pending" | "approved" | "rejected" | null;
 };
 
 export default async function AdminSellersPage() {
@@ -17,7 +19,7 @@ export default async function AdminSellersPage() {
 
   const { data, error } = await db
     .from("sellers")
-    .select("id, name, slug, user_id")
+    .select("id, name, slug, user_id, approval_status")
     .order("id", { ascending: false })
     .limit(300);
 
@@ -61,6 +63,7 @@ export default async function AdminSellersPage() {
               <th className="px-3 py-2">Ad</th>
               <th className="px-3 py-2">Slug</th>
               <th className="px-3 py-2">user_id</th>
+              <th className="px-3 py-2">Status</th>
               {mode === "service" ? <th className="px-3 py-2">Əməliyyat</th> : null}
             </tr>
           </thead>
@@ -81,13 +84,45 @@ export default async function AdminSellersPage() {
                 <td className="max-w-[220px] truncate px-3 py-2 font-mono text-[11px] text-stone-400">
                   {r.user_id ?? "—"}
                 </td>
+                <td className="px-3 py-2">
+                  <span
+                    className={[
+                      "rounded-full px-2 py-0.5 text-xs",
+                      r.approval_status === "approved"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : r.approval_status === "rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700",
+                    ].join(" ")}
+                  >
+                    {r.approval_status ?? "pending"}
+                  </span>
+                </td>
                 {mode === "service" ? (
                   <td className="px-3 py-2">
-                    <AdminDeleteButton
-                      actionLabel="Satıcı və hesabı sil"
-                      confirmText={`Satıcı #${r.id} (${r.name ?? r.slug ?? "adsız"}), bütün məhsullarını və əlaqəli auth hesabını silmək? Əməliyyat geri alınmaz.`}
-                      endpoint={`/api/admin/sellers/${encodeURIComponent(String(r.id))}`}
-                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.approval_status !== "approved" ? (
+                        <AdminSellerApprovalButton
+                          endpoint={`/api/admin/sellers/${encodeURIComponent(String(r.id))}/approval`}
+                          status="approved"
+                          label="Qəbul et"
+                          confirmText={`Satıcı #${r.id} üçün müraciəti qəbul etmək istəyirsiniz?`}
+                        />
+                      ) : null}
+                      {r.approval_status !== "rejected" ? (
+                        <AdminSellerApprovalButton
+                          endpoint={`/api/admin/sellers/${encodeURIComponent(String(r.id))}/approval`}
+                          status="rejected"
+                          label="Rədd et"
+                          confirmText={`Satıcı #${r.id} üçün müraciəti rədd etmək istəyirsiniz?`}
+                        />
+                      ) : null}
+                      <AdminDeleteButton
+                        actionLabel="Satıcı və hesabı sil"
+                        confirmText={`Satıcı #${r.id} (${r.name ?? r.slug ?? "adsız"}), bütün məhsullarını və əlaqəli auth hesabını silmək? Əməliyyat geri alınmaz.`}
+                        endpoint={`/api/admin/sellers/${encodeURIComponent(String(r.id))}`}
+                      />
+                    </div>
                   </td>
                 ) : null}
               </tr>
