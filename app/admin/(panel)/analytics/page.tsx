@@ -1,58 +1,88 @@
-export default function AdminAnalyticsPage() {
+import { createAnonSupabaseServer } from "@/lib/supabase-anon-server";
+import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
+
+export default async function AdminAnalyticsPage() {
+  const service = createServiceSupabaseAdmin();
+  const db = service ?? createAnonSupabaseServer();
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+
+  const { data: events, error } = await db
+    .from("seller_analytics_events")
+    .select("event_type, seller_id, product_id, created_at")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(150);
+
+  const rows = events ?? [];
+  const productViews = rows.filter((r) => r.event_type === "product_view").length;
+  const waClicks = rows.filter((r) => r.event_type === "whatsapp_click").length;
+  const profileViews = rows.filter((r) => r.event_type === "seller_profile_view").length;
+  const uniqueSellers = new Set(rows.map((r) => r.seller_id).filter((v) => v != null)).size;
+
   return (
     <div className="space-y-5">
       <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Analitika</h1>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card title="Yeni Sifarişlər" value="145" delta="-2.3%" negative />
-        <Card title="Yeni Satıcı Müraciətləri" value="28" delta="+5%" />
-        <Card title="Orta Səbət" value="$278" delta="+3.2%" />
-        <Card title="Dönüşüm" value="4.9%" delta="+0.4%" />
+        <Card title="Məhsul baxışı (30 gün)" value={String(productViews)} />
+        <Card title="WhatsApp klikləri (30 gün)" value={String(waClicks)} />
+        <Card title="Profil baxışları (30 gün)" value={String(profileViews)} />
+        <Card title="Aktiv satıcı sayı (event)" value={String(uniqueSellers)} />
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <section className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4 lg:col-span-2">
-          <h2 className="mb-3 font-semibold text-stone-900">Həftəlik Satış Trendi</h2>
-          <div className="relative h-44 rounded-xl border border-[#ece7de] bg-white">
-            <svg viewBox="0 0 600 180" className="absolute inset-0 h-full w-full p-3 text-stone-900">
-              <polyline
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                points="20,150 95,100 160,70 240,120 320,80 410,112 500,68 560,20"
-              />
-            </svg>
+      <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
+        <h2 className="mb-3 font-semibold text-stone-900">Son analitika hadisələri</h2>
+        {error ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Analitika cədvəli əlçatan deyil: {error.message}
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[#ece7de] bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[#f8f8f6] text-left text-xs uppercase text-stone-500">
+                <tr>
+                  <th className="px-3 py-2">Event</th>
+                  <th className="px-3 py-2">Seller ID</th>
+                  <th className="px-3 py-2">Product ID</th>
+                  <th className="px-3 py-2">Tarix</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#efebe3] text-stone-700">
+                {rows.slice(0, 20).map((r, i) => (
+                  <tr key={`${r.created_at ?? "t"}-${i}`}>
+                    <td className="px-3 py-2">{r.event_type ?? "—"}</td>
+                    <td className="px-3 py-2">{r.seller_id ?? "—"}</td>
+                    <td className="px-3 py-2">{r.product_id ?? "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-stone-500">
+                      {r.created_at ? new Date(r.created_at).toLocaleString("az-AZ") : "—"}
+                    </td>
+                  </tr>
+                ))}
+                {rows.length === 0 ? (
+                  <tr>
+                    <td className="px-3 py-3 text-stone-500" colSpan={4}>
+                      Son 30 gün üçün event tapılmadı.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
-        </section>
-        <section className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
-          <h2 className="mb-3 font-semibold text-stone-900">Son Fəaliyyətlər</h2>
-          <ul className="space-y-2 text-sm text-stone-700">
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Qiymət düzəlişi edildi</li>
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Sifariş qaytarıldı</li>
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Yeni vendor təsdiqləndi</li>
-          </ul>
-        </section>
+        )}
       </div>
     </div>
   );
 }
 
-function Card({
-  title,
-  value,
-  delta,
-  negative,
-}: {
+function Card({ title, value }: {
   title: string;
   value: string;
-  delta: string;
-  negative?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] px-4 py-4">
       <p className="text-sm text-stone-600">{title}</p>
       <p className="mt-1 text-4xl font-semibold tracking-tight text-stone-900">{value}</p>
-      <p className={["mt-1 text-sm font-medium", negative ? "text-red-600" : "text-emerald-600"].join(" ")}>{delta}</p>
     </div>
   );
 }

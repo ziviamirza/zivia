@@ -12,22 +12,37 @@ export default async function AdminHomePage() {
     db.from("sellers").select("*", { count: "exact", head: true }),
   ]);
 
+  const { data: recentProducts } = await db
+    .from("products")
+    .select("id, title, created_at, seller_id")
+    .order("id", { ascending: false })
+    .limit(6);
+
+  const { data: recentSellers } = await db
+    .from("sellers")
+    .select("id, name, created_at")
+    .order("id", { ascending: false })
+    .limit(6);
+
   let hiddenProducts: number | null = null;
   let authUserTotal: number | null = null;
+  let events30d: number | null = null;
   if (service) {
-    const { count } = await service
-      .from("products")
-      .select("*", { count: "exact", head: true })
-      .eq("is_published", false);
-    hiddenProducts = count;
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
 
-    const { data: authPage, error: authListErr } = await service.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-    if (!authListErr && authPage) {
-      authUserTotal = authPage.total;
-    }
+    const [{ count }, authRes, eventRes] = await Promise.all([
+      service.from("products").select("*", { count: "exact", head: true }).eq("is_published", false),
+      service.auth.admin.listUsers({ page: 1, perPage: 1 }),
+      service
+        .from("seller_analytics_events")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since.toISOString()),
+    ]);
+
+    hiddenProducts = count;
+    if (!authRes.error && authRes.data) authUserTotal = authRes.data.total;
+    if (!eventRes.error) events30d = eventRes.count ?? 0;
   }
 
   return (
@@ -46,46 +61,40 @@ export default async function AdminHomePage() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Ümumi Satış (GMV)" value="$248,500" hint="+12.5%" />
-        <StatCard label="Xalis Gəlir (Komissiya)" value="$37,275" hint="+8.1%" />
-        <StatCard label="Məhsullar (cəmi)" value={productCount ?? "—"} hint="Sistem məlumatı" />
-        <StatCard
-          label="Satıcılar"
-          value={sellerCount ?? "—"}
-          hint={mode === "anon" ? "Service açarı ilə" : undefined}
-        />
+        <StatCard label="Məhsullar (cəmi)" value={productCount ?? "—"} />
+        <StatCard label="Satıcılar (cəmi)" value={sellerCount ?? "—"} />
+        <StatCard label="Yayımlanmayan məhsul" value={hiddenProducts ?? "—"} hint={mode === "anon" ? "service tələb edir" : undefined} />
+        <StatCard label="Auth istifadəçiləri" value={authUserTotal ?? "—"} hint={mode === "anon" ? "service tələb edir" : undefined} />
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-stone-900">Qızılın Canlı Qiyməti (XAU/AZN)</h2>
-            <span className="rounded-lg border border-[#e5dfd5] bg-white px-2.5 py-1 text-xs">Metal Qiyməti</span>
-          </div>
-          <div className="relative h-44 rounded-xl border border-[#ece7de] bg-white">
-            <div className="absolute inset-0 bg-[linear-gradient(to_top,#fff_5%,#f6f4ef_100%)]" />
-            <svg viewBox="0 0 600 180" className="absolute inset-0 h-full w-full p-3 text-stone-800">
-              <polyline
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                points="20,150 120,125 220,120 300,80 380,105 470,58 560,30"
-              />
-            </svg>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
-          <h2 className="mb-3 font-semibold text-stone-900">Son Fəaliyyətlər</h2>
-          <ul className="space-y-3 text-sm text-stone-700">
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Yeni satıcı müraciəti daxil olub.</li>
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Məhsul qiyməti yeniləndi.</li>
-            <li className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">Komissiya dərəcəsi dəyişdirildi.</li>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
+          <h2 className="mb-3 font-semibold text-stone-900">Son əlavə olunan məhsullar</h2>
+          <ul className="space-y-2 text-sm text-stone-700">
+            {(recentProducts ?? []).map((p) => (
+              <li key={p.id} className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">
+                <span className="font-medium">{p.title ?? "Adsız məhsul"}</span>{" "}
+                <span className="text-xs text-stone-500">#{p.id}</span>
+              </li>
+            ))}
+            {(recentProducts ?? []).length === 0 ? <li className="text-stone-500">Məlumat yoxdur.</li> : null}
           </ul>
-        </div>
+        </section>
+        <section className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] p-4">
+          <h2 className="mb-3 font-semibold text-stone-900">Son əlavə olunan satıcılar</h2>
+          <ul className="space-y-2 text-sm text-stone-700">
+            {(recentSellers ?? []).map((s) => (
+              <li key={s.id} className="rounded-lg border border-[#ece7de] bg-white px-3 py-2">
+                <span className="font-medium">{s.name ?? "Adsız satıcı"}</span>{" "}
+                <span className="text-xs text-stone-500">#{s.id}</span>
+              </li>
+            ))}
+            {(recentSellers ?? []).length === 0 ? <li className="text-stone-500">Məlumat yoxdur.</li> : null}
+          </ul>
+        </section>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Link
           href="/admin/products"
           className="rounded-xl border border-[#ece7de] bg-[#fcfcfb] p-4 transition hover:border-[#ffb164]"
@@ -108,6 +117,13 @@ export default async function AdminHomePage() {
           <p className="mt-1 text-xs text-stone-500">Auth və sifariş qeydləri</p>
         </Link>
         <Link
+          href="/admin/analytics"
+          className="rounded-xl border border-[#ece7de] bg-[#fcfcfb] p-4 transition hover:border-[#ffb164]"
+        >
+          <p className="text-sm font-semibold text-stone-900">Analitika</p>
+          <p className="mt-1 text-xs text-stone-500">Hadisə əsaslı real göstəricilər</p>
+        </Link>
+        <Link
           href="/admin/security"
           className="rounded-xl border border-[#ece7de] bg-[#fcfcfb] p-4 transition hover:border-[#ffb164]"
         >
@@ -116,10 +132,10 @@ export default async function AdminHomePage() {
         </Link>
       </div>
 
-      {hiddenProducts != null || authUserTotal != null ? (
+      {hiddenProducts != null || authUserTotal != null || events30d != null ? (
         <div className="rounded-xl border border-[#ece7de] bg-[#fcfcfb] p-4 text-sm text-stone-600">
           Gizli məhsullar: <strong>{hiddenProducts ?? "—"}</strong> · Auth istifadəçiləri:{" "}
-          <strong>{authUserTotal ?? "—"}</strong>
+          <strong>{authUserTotal ?? "—"}</strong> · 30 gün analitika eventləri: <strong>{events30d ?? "—"}</strong>
         </div>
       ) : null}
     </div>
@@ -139,7 +155,7 @@ function StatCard({
     <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] px-4 py-4">
       <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
       <p className="mt-2 font-mono text-3xl font-semibold text-stone-900">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-emerald-600">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-xs text-stone-500">{hint}</p> : null}
     </div>
   );
 }
