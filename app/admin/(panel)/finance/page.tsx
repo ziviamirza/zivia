@@ -135,7 +135,6 @@ function Card({ title, value }: { title: string; value: string }) {
     <div className="rounded-2xl border border-[#ece7de] bg-[#fcfcfb] px-4 py-4">
       <p className="text-sm text-stone-600">{title}</p>
       <p className="mt-1 text-4xl font-semibold tracking-tight text-stone-900">{value}</p>
-      {growth ? <p className="mt-1 text-sm font-medium text-emerald-600">{growth}</p> : null}
     </div>
   );
 }
