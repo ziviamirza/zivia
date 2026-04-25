@@ -15,14 +15,15 @@ type Props = {
 };
 
 export default function FavoriteHeartButton({ slug, className, size = "sm" }: Props) {
-  const [on, setOn] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [on, setOn] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const s = slug.trim();
+    return s ? isFavoriteSlug(s) : false;
+  });
 
   useEffect(() => {
-    setMounted(true);
     const s = slug.trim();
     if (!s) return;
-    setOn(isFavoriteSlug(s));
     return subscribeFavorites(() => setOn(isFavoriteSlug(s)));
   }, [slug]);
 
@@ -37,7 +38,7 @@ export default function FavoriteHeartButton({ slug, className, size = "sm" }: Pr
       type="button"
       title={on ? "Bəyənmədən çıxar" : "Bəyənilənlərə əlavə et"}
       aria-label={on ? "Bəyənmədən çıxar" : "Bəyənilənlərə əlavə et"}
-      aria-pressed={mounted ? on : undefined}
+      aria-pressed={on}
       onClick={() => {
         const next = toggleFavoriteSlug(s);
         setOn(next);

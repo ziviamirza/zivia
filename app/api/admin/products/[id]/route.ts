@@ -26,7 +26,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
 
   const { error } = await svc.from("products").delete().eq("id", pid);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("admin/products delete failed", { pid, reason: error.message });
+    return NextResponse.json({ error: "Məhsul silinərkən xəta baş verdi." }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

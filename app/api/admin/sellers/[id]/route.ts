@@ -35,7 +35,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     .maybeSingle();
 
   if (findErr) {
-    return NextResponse.json({ error: findErr.message }, { status: 500 });
+    console.error("admin/sellers read failed", { sid, reason: findErr.message });
+    return NextResponse.json({ error: "Satıcı yoxlanarkən xəta baş verdi." }, { status: 500 });
   }
   if (!seller) {
     return NextResponse.json({ error: "Satıcı tapılmadı." }, { status: 404 });
@@ -43,19 +44,26 @@ export async function DELETE(_req: Request, ctx: Ctx) {
 
   const { error: pErr } = await svc.from("products").delete().eq("seller_id", sid);
   if (pErr) {
-    return NextResponse.json({ error: pErr.message }, { status: 500 });
+    console.error("admin/sellers product delete failed", { sid, reason: pErr.message });
+    return NextResponse.json({ error: "Satıcı məhsulları silinərkən xəta baş verdi." }, { status: 500 });
   }
 
   const { error: sErr } = await svc.from("sellers").delete().eq("id", sid);
   if (sErr) {
-    return NextResponse.json({ error: sErr.message }, { status: 500 });
+    console.error("admin/sellers row delete failed", { sid, reason: sErr.message });
+    return NextResponse.json({ error: "Satıcı silinərkən xəta baş verdi." }, { status: 500 });
   }
 
   if (seller.user_id) {
     const { error: authErr } = await svc.auth.admin.deleteUser(String(seller.user_id));
     if (authErr) {
+      console.error("admin/sellers auth delete failed", {
+        sid,
+        userId: String(seller.user_id),
+        reason: authErr.message,
+      });
       return NextResponse.json(
-        { error: `Satıcı silindi, auth silinmədi: ${authErr.message}` },
+        { error: "Satıcı silindi, amma auth hesabı silinmədi." },
         { status: 500 },
       );
     }

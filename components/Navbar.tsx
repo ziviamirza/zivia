@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import SellerNotificationsBell from "@/components/SellerNotificationsBell";
 import { readCartLines, subscribeCart } from "@/lib/cart-storage";
 import { favoriteCount, subscribeFavorites } from "@/lib/favorites-storage";
@@ -120,13 +120,10 @@ function DrawerItem({
 export default function Navbar() {
   const supabase = createClient();
   const router = useRouter();
-  const pathname = usePathname();
   const [signedIn, setSignedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [displayName, setDisplayName] = useState("Qonaq");
-
-  const isProductsPage = pathname?.startsWith("/products");
   const normalizedName = useMemo(() => {
     const t = displayName.trim();
     if (!t) return "Qonaq";

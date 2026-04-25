@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DEFAULT_ADMIN_EMAIL } from "@/lib/admin-config";
 import { ADMIN_COOKIE, verifyAdminJwt } from "@/lib/admin-token";
 import AdminLoginForm from "./AdminLoginForm";
 
@@ -25,10 +24,9 @@ export default async function AdminLoginPage({ searchParams }: Props) {
           <span className="whitespace-nowrap text-[#8b6b2c]">/admin</span> idarəetməsinə daxil olursunuz.
         </p>
         <p className="mt-2 rounded-lg bg-stone-100/80 px-2.5 py-1.5 text-[11px] text-stone-600">
-          Standart e-poçt: <code className="font-mono text-stone-800">{DEFAULT_ADMIN_EMAIL}</code> — şifrə
-          yox, <strong>xüsusi kod</strong> sahəsinə admin kodunuzu yazın.
+          E-poçt və <strong>xüsusi kod</strong> server env dəyişənləri ilə idarə olunur.
         </p>
-        <AdminLoginForm nextPath={nextPath} defaultEmail={DEFAULT_ADMIN_EMAIL} />
+        <AdminLoginForm nextPath={nextPath} defaultEmail="" />
       </div>
     </div>
   );

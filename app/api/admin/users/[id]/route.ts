@@ -35,18 +35,28 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     .eq("user_id", userId);
 
   if (listErr) {
-    return NextResponse.json({ error: listErr.message }, { status: 500 });
+    console.error("admin/users sellers lookup failed", { userId, reason: listErr.message });
+    return NextResponse.json({ error: "İstifadəçi əlaqələri yoxlanarkən xəta baş verdi." }, { status: 500 });
   }
 
   for (const row of sellers ?? []) {
     const sid = row.id as number;
-    await svc.from("products").delete().eq("seller_id", sid);
-    await svc.from("sellers").delete().eq("id", sid);
+    const { error: pErr } = await svc.from("products").delete().eq("seller_id", sid);
+    if (pErr) {
+      console.error("admin/users product cleanup failed", { userId, sid, reason: pErr.message });
+      return NextResponse.json({ error: "İstifadəçi məhsulları silinərkən xəta baş verdi." }, { status: 500 });
+    }
+    const { error: sErr } = await svc.from("sellers").delete().eq("id", sid);
+    if (sErr) {
+      console.error("admin/users seller cleanup failed", { userId, sid, reason: sErr.message });
+      return NextResponse.json({ error: "İstifadəçi satıcısı silinərkən xəta baş verdi." }, { status: 500 });
+    }
   }
 
   const { error: authErr } = await svc.auth.admin.deleteUser(userId);
   if (authErr) {
-    return NextResponse.json({ error: authErr.message }, { status: 500 });
+    console.error("admin/users auth delete failed", { userId, reason: authErr.message });
+    return NextResponse.json({ error: "Auth istifadəçisi silinərkən xəta baş verdi." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

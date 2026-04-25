@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { ADMIN_COOKIE, adminAuthConfigured, signAdminJwt } from "@/lib/admin-token";
+import { missingAdminEnvKeys } from "@/lib/admin-config";
+import {
+  clearLoginFailures,
+  getClientIp,
+  getLoginRateLimitState,
+  noteLoginFailure,
+} from "@/lib/admin-login-rate-limit";
 import { validateAdminCredentials } from "@/lib/admin-login-validate";
 
 export const runtime = "nodejs";
@@ -9,9 +16,10 @@ function cookieSecure(): boolean {
 }
 
 export async function POST(req: Request) {
-  if (!adminAuthConfigured()) {
+  const missingEnv = missingAdminEnvKeys();
+  if (!adminAuthConfigured() || missingEnv.length > 0) {
     return NextResponse.json(
-      { error: "Admin JWT konfiqurasiyası etibarsızdır (gizli açar çox qısadır)." },
+      { error: `Admin konfiqurasiyası natamamdır: ${missingEnv.join(", ") || "ADMIN_JWT_SECRET"}.` },
       { status: 503 },
     );
   }
@@ -25,10 +33,21 @@ export async function POST(req: Request) {
 
   const email = typeof body.email === "string" ? body.email : "";
   const code = typeof body.code === "string" ? body.code : "";
+  const clientIp = getClientIp(req);
+
+  const limitState = getLoginRateLimitState(clientIp, email);
+  if (limitState.blocked) {
+    return NextResponse.json(
+      { error: "Çox sayda uğursuz cəhd oldu. Bir qədər sonra yenidən yoxlayın." },
+      { status: 429, headers: { "Retry-After": String(limitState.retryAfterSec) } },
+    );
+  }
 
   if (!validateAdminCredentials(email, code)) {
+    noteLoginFailure(clientIp, email);
     return NextResponse.json({ error: "E-poçt və ya kod yanlışdır." }, { status: 401 });
   }
+  clearLoginFailures(clientIp, email);
 
   const token = await signAdminJwt();
   if (!token) {

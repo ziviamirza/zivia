@@ -9,7 +9,7 @@ function getSecret(): Uint8Array | null {
   return new TextEncoder().encode(s);
 }
 
-/** JWT yaradıla bilirsə admin girişi aktiv sayılır (standart dəyərlər və ya .env). */
+/** JWT yaradıla bilirsə admin girişi aktiv sayılır (yalnız env dəyərləri ilə). */
 export function adminAuthConfigured(): boolean {
   return resolveAdminJwtSecret().length >= 24;
 }

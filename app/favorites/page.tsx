@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { readFavoriteSlugs, subscribeFavorites } from "@/lib/favorites-storage";
 import { primaryProductImageUrl } from "@/lib/product-images";
@@ -18,33 +18,22 @@ type Row = {
 };
 
 export default function FavoritesPage() {
-  const [hydrated, setHydrated] = useState(false);
-  const [slugs, setSlugs] = useState<string[]>([]);
+  const [slugs, setSlugs] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    return readFavoriteSlugs();
+  });
   const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const sync = useCallback(() => setSlugs(readFavoriteSlugs()), []);
+  useEffect(() => {
+    return subscribeFavorites(() => setSlugs(readFavoriteSlugs()));
+  }, []);
 
   useEffect(() => {
-    setHydrated(true);
-    sync();
-  }, [sync]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    return subscribeFavorites(sync);
-  }, [hydrated, sync]);
-
-  useEffect(() => {
-    if (!hydrated || slugs.length === 0) {
-      setRows([]);
-      setErr(null);
+    if (slugs.length === 0) {
       return;
     }
     let cancelled = false;
-    setLoading(true);
-    setErr(null);
     (async () => {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -52,7 +41,6 @@ export default function FavoritesPage() {
         .select("id, title, category, price, slug, image, images")
         .in("slug", slugs);
       if (cancelled) return;
-      setLoading(false);
       if (error) {
         setErr("Məhsullar yüklənmədi.");
         setRows([]);
@@ -63,7 +51,7 @@ export default function FavoritesPage() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, slugs]);
+  }, [slugs]);
 
   const bySlug = useMemo(() => {
     const m = new Map<string, Row>();
@@ -76,15 +64,6 @@ export default function FavoritesPage() {
   const ordered = useMemo(() => {
     return slugs.map((s) => bySlug.get(s)).filter((r): r is Row => Boolean(r));
   }, [slugs, bySlug]);
-
-  if (!hydrated) {
-    return (
-      <div className="space-y-3 px-3 py-4 md:px-4">
-        <h1 className="font-display text-2xl text-stone-900">Bəyəndiklərim</h1>
-        <p className="text-sm text-stone-500">Yüklənir…</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 px-3 py-4 md:px-4 lg:px-5">
@@ -104,10 +83,6 @@ export default function FavoritesPage() {
 
       {err ? (
         <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{err}</p>
-      ) : null}
-
-      {loading && slugs.length > 0 ? (
-        <p className="text-xs text-stone-500">Yenilənir…</p>
       ) : null}
 
       {slugs.length === 0 ? (

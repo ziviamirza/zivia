@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatAzn } from "@/lib/format";
 import {
   readCartLines,
@@ -29,41 +29,27 @@ type RowState =
   | { kind: "missing"; line: CartLine };
 
 export default function CartPage() {
-  const [hydrated, setHydrated] = useState(false);
-  const [lines, setLines] = useState<CartLine[]>([]);
+  const [lines, setLines] = useState<CartLine[]>(() => {
+    if (typeof window === "undefined") return [];
+    return readCartLines();
+  });
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [coupon, setCoupon] = useState("");
 
-  const syncFromStorage = useCallback(() => {
-    setLines(readCartLines());
+  useEffect(() => {
+    const onCart = () => setLines(readCartLines());
+    window.addEventListener("zivia-cart", onCart);
+    return () => window.removeEventListener("zivia-cart", onCart);
   }, []);
 
   useEffect(() => {
-    setHydrated(true);
-    syncFromStorage();
-  }, [syncFromStorage]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const onCart = () => syncFromStorage();
-    window.addEventListener("zivia-cart", onCart);
-    return () => window.removeEventListener("zivia-cart", onCart);
-  }, [hydrated, syncFromStorage]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     const slugs = lines.map((l) => l.slug);
     if (slugs.length === 0) {
-      setRows([]);
-      setLoadError(null);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
 
     (async () => {
       const supabase = createClient();
@@ -73,7 +59,6 @@ export default function CartPage() {
         .in("slug", slugs);
 
       if (cancelled) return;
-      setLoading(false);
       if (error) {
         setLoadError("Məhsullar yüklənmədi. İnternet bağlantısını yoxlayın.");
         setRows([]);
@@ -85,7 +70,7 @@ export default function CartPage() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, lines]);
+  }, [lines]);
 
   const bySlug = useMemo(() => {
     const m = new Map<string, ProductRow>();
@@ -144,17 +129,6 @@ export default function CartPage() {
     setLines(next);
   }
 
-  if (!hydrated) {
-    return (
-      <div className="space-y-4 px-3 py-4 md:px-4 lg:px-5">
-        <h1 className="font-display text-3xl leading-none text-stone-900 md:text-4xl">
-          Səbət
-        </h1>
-        <p className="text-sm text-stone-500">Yüklənir…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4 px-3 py-4 md:px-4 lg:px-5">
       <h1 className="font-display text-3xl leading-none text-stone-900 md:text-4xl">
@@ -174,10 +148,6 @@ export default function CartPage() {
           ) : null}
 
           <div className="mt-3 space-y-2.5">
-            {loading && lines.length > 0 ? (
-              <p className="text-xs text-stone-500">Məhsul məlumatları yenilənir…</p>
-            ) : null}
-
             {lines.length ? (
               displayRows.map((row) =>
                 row.kind === "missing" ? (
