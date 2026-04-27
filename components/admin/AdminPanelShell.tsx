@@ -79,8 +79,8 @@ export default function AdminPanelShell({
             className="absolute inset-0 bg-black/35"
             aria-label="Close menu overlay"
           />
-          <div className="absolute inset-y-2 left-2 w-[84%] max-w-[320px]">
-            <div className="h-full overflow-y-auto overscroll-contain pr-1">
+          <div className="absolute left-2 top-2 h-[calc(100dvh-1rem)] w-[84%] max-w-[320px]">
+            <div className="h-full touch-pan-y overflow-y-scroll overscroll-contain pr-1 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch]">
               <AdminSidebar pendingSellerCount={pendingSellerCount} onNavigate={() => setMenuOpen(false)} />
             </div>
           </div>

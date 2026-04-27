@@ -39,7 +39,7 @@ export default function AdminSidebar({
         </div>
       </div>
 
-      <nav className="space-y-1.5 overflow-y-auto pr-1">
+      <nav className="space-y-1.5 pr-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
