@@ -30,7 +30,7 @@ export default function AdminSidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col rounded-2xl border border-[#ece7de] bg-white p-4 lg:w-72">
+    <aside className="flex h-full w-full shrink-0 touch-pan-y flex-col overflow-y-auto rounded-2xl border border-[#ece7de] bg-white p-4 [-webkit-overflow-scrolling:touch] lg:w-72">
       <div className="mb-5 flex items-center gap-2 px-2">
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-black text-sm font-bold text-white">Z</div>
         <div>
