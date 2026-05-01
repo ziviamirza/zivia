@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DeleteProductButton } from "@/components/DeleteProductButton";
-import { fetchSellerForDashboard } from "@/lib/ensure-seller-row";
+import { fetchSellerForDashboard, sellerDisplayNameFromUser } from "@/lib/ensure-seller-row";
 import { primaryProductImageUrl } from "@/lib/product-images";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const { seller, error: sellerError } = await fetchSellerForDashboard(supabase, user);
 
   if (!seller) {
-    const hasBrandMeta = Boolean(String(user.user_metadata?.brand_name ?? "").trim());
+    const hasBrandMeta = Boolean(sellerDisplayNameFromUser(user));
     return (
       <main className="min-h-screen bg-white px-4 py-16">
         <div className="mx-auto max-w-5xl">

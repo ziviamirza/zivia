@@ -1,4 +1,4 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient, User } from "@supabase/supabase-js";
 
 /** DB `slugify_az` ilə uyğun (satıcı slug üçün). */
 export function slugifyAz(input: string): string {
@@ -26,20 +26,89 @@ export function defaultSellerSlug(brand: string, userId: string): string {
   return `${base}-${idPart}`;
 }
 
+/** Satıcı adı: brend → tam ad → e-poçtun @ əvvəli. */
+export function sellerDisplayNameFromUser(user: User): string | null {
+  const brand = String(user.user_metadata?.brand_name ?? "").trim();
+  if (brand) return brand;
+  const full = String(user.user_metadata?.full_name ?? "").trim();
+  if (full) return full;
+  const local = String(user.email ?? "").split("@")[0]?.trim();
+  if (local) return local;
+  return null;
+}
+
+function isMissingColumnError(err: PostgrestError | null): boolean {
+  if (!err) return false;
+  const msg = (err.message ?? "").toLowerCase();
+  if (err.code === "42703") return true;
+  if (msg.includes("column") && msg.includes("does not exist")) return true;
+  return false;
+}
+
+export type DashboardSeller = {
+  id: number;
+  name: string;
+  slug: string;
+  user_id: string;
+  whatsapp: string | null;
+  description: string | null;
+  avatar: string | null;
+  approval_status: string;
+  review_note: string | null;
+};
+
+type SellerRowRaw = Record<string, unknown>;
+
+function normalizeDashboardSeller(row: SellerRowRaw | null): DashboardSeller | null {
+  if (!row) return null;
+  const hasApproval =
+    Object.prototype.hasOwnProperty.call(row, "approval_status") &&
+    row.approval_status != null &&
+    String(row.approval_status).length > 0;
+  const approval_status = hasApproval ? String(row.approval_status) : "approved";
+  const review_note =
+    "review_note" in row && row.review_note != null ? String(row.review_note) : null;
+
+  return {
+    id: Number(row.id),
+    name: String(row.name ?? ""),
+    slug: String(row.slug ?? ""),
+    user_id: String(row.user_id ?? ""),
+    whatsapp: row.whatsapp != null ? String(row.whatsapp) : null,
+    description: row.description != null ? String(row.description) : null,
+    avatar: row.avatar != null ? String(row.avatar) : null,
+    approval_status,
+    review_note,
+  };
+}
+
+async function querySellerRow(
+  supabase: SupabaseClient,
+  userId: string,
+  select: string,
+) {
+  return supabase
+    .from("sellers")
+    .select(select)
+    .eq("user_id", userId)
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+}
+
 /**
- * Qeydiyyat metadata-sında `brand_name` varsa və `sellers` sətiri yoxdursa,
- * RLS altında öz user_id üçün bir sətir yaradır (e-poçt təsdiqindən sonra
- * köhnə trigger qaçıbsa və ya sıra yaradılmayıbsa).
+ * Qeydiyyat metadata-sında və ya e-poçtdan göstəriləcək ad varsa və `sellers`
+ * sətiri yoxdursa, RLS altında öz user_id üçün sətir yaradır.
  */
 export async function ensureSellerRowForUser(
   supabase: SupabaseClient,
   user: User,
 ): Promise<void> {
-  const brand = String(user.user_metadata?.brand_name ?? "").trim();
+  const brand = sellerDisplayNameFromUser(user);
   if (!brand) return;
 
   const slug = defaultSellerSlug(brand, user.id);
-  const { error } = await supabase.from("sellers").insert({
+  const baseRow = {
     user_id: user.id,
     name: brand,
     slug,
@@ -48,39 +117,46 @@ export async function ensureSellerRowForUser(
     instagram: "",
     tiktok: "",
     avatar: "",
-    approval_status: "pending",
-  });
+  };
+
+  let { error } = await supabase
+    .from("sellers")
+    .insert({ ...baseRow, approval_status: "pending" });
+
+  if (error && isMissingColumnError(error)) {
+    ({ error } = await supabase.from("sellers").insert(baseRow));
+  }
 
   if (!error) return;
-  // Slug və ya sətir artıq var — yenidən oxuma kifayətdir
   if (error.code === "23505") return;
 }
 
-const DASHBOARD_SELLER_SELECT =
+const SELLER_SELECT_FULL =
   "id, name, slug, user_id, whatsapp, description, avatar, approval_status, review_note";
+const SELLER_SELECT_MINIMAL =
+  "id, name, slug, user_id, whatsapp, description, avatar";
 
 /** `.limit(1)` — eyni user üçün təsadüfi çox sətir olsa belə PGRST116 olmur. */
 export async function fetchSellerForDashboard(supabase: SupabaseClient, user: User) {
-  let { data: seller, error } = await supabase
-    .from("sellers")
-    .select(DASHBOARD_SELLER_SELECT)
-    .eq("user_id", user.id)
-    .order("id", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  let { data: seller, error } = await querySellerRow(supabase, user.id, SELLER_SELECT_FULL);
+
+  if (error && isMissingColumnError(error)) {
+    const retry = await querySellerRow(supabase, user.id, SELLER_SELECT_MINIMAL);
+    seller = retry.data as typeof seller;
+    error = retry.error;
+  }
 
   if (!seller && !error) {
     await ensureSellerRowForUser(supabase, user);
-    const second = await supabase
-      .from("sellers")
-      .select(DASHBOARD_SELLER_SELECT)
-      .eq("user_id", user.id)
-      .order("id", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    let second = await querySellerRow(supabase, user.id, SELLER_SELECT_FULL);
+    if (second.error && isMissingColumnError(second.error)) {
+      second = await querySellerRow(supabase, user.id, SELLER_SELECT_MINIMAL);
+    }
     seller = second.data;
     error = second.error;
   }
 
-  return { seller, error };
+  const normalized = normalizeDashboardSeller(seller as SellerRowRaw | null);
+
+  return { seller: normalized, error };
 }
