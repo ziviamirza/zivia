@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminPurgeSellerCompletely } from "@/lib/admin-purge-seller";
 import { requireAdminApiOr401 } from "@/lib/admin-route-guard";
+import { revalidateShopVitrin } from "@/lib/revalidate-shop";
 import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
 
 export const runtime = "nodejs";
@@ -64,6 +65,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       { status: 500 },
     );
   }
+
+  revalidateShopVitrin();
 
   return NextResponse.json({ ok: true });
 }

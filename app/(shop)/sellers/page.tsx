@@ -4,6 +4,8 @@ import Link from "next/link";
 import { initialsFromName } from "@/lib/social-links";
 import { supabase } from "@/lib/supabase";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Satıcılar",
   description: "Zivia satıcı vitrinləri — zərgərlik və bijuteriya.",

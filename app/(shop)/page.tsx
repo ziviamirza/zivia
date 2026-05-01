@@ -6,6 +6,9 @@ import { primaryProductImageUrl, productRowImageUrls } from "@/lib/product-image
 import { supabase } from "@/lib/supabase";
 import type { Seller } from "@/types";
 
+/** Vitrin DB ilə çox uzun müddət köhnə qalmasın (admin silmədən sonra ISR fallback). */
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Ana səhifə",
   description:

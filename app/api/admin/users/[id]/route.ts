@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminPurgeSellerCompletely } from "@/lib/admin-purge-seller";
 import { requireAdminApiOr401 } from "@/lib/admin-route-guard";
+import { revalidateShopVitrin } from "@/lib/revalidate-shop";
 import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
 
 export const runtime = "nodejs";
@@ -62,6 +63,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     console.error("admin/users auth delete failed", { userId, reason: authErr.message });
     return NextResponse.json({ error: "Auth istifadəçisi silinərkən xəta baş verdi." }, { status: 500 });
   }
+
+  revalidateShopVitrin();
 
   return NextResponse.json({ ok: true });
 }
