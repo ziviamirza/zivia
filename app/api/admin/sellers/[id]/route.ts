@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { adminPurgeSellerCompletely } from "@/lib/admin-purge-seller";
 import { requireAdminApiOr401 } from "@/lib/admin-route-guard";
 import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
 
@@ -7,8 +8,8 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * Satıcı sətrini, onun məhsullarını və əlaqəli auth istifadəçisini silir.
- * Geri qaytarılmır — təsdiq UI-də verilir.
+ * Satıcı və ona aid hər şeyi silir: admin bildirişləri, məhsul şəkilləri (storage),
+ * məhsullar, satıcı sətiri, auth istifadəçisi (seller_notifications CASCADE).
  */
 export async function DELETE(_req: Request, ctx: Ctx) {
   const deny = await requireAdminApiOr401();
@@ -42,31 +43,25 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Satıcı tapılmadı." }, { status: 404 });
   }
 
-  const { error: pErr } = await svc.from("products").delete().eq("seller_id", sid);
-  if (pErr) {
-    console.error("admin/sellers product delete failed", { sid, reason: pErr.message });
-    return NextResponse.json({ error: "Satıcı məhsulları silinərkən xəta baş verdi." }, { status: 500 });
-  }
+  const userId = seller.user_id != null ? String(seller.user_id) : null;
+  const result = await adminPurgeSellerCompletely(svc, sid, userId);
 
-  const { error: sErr } = await svc.from("sellers").delete().eq("id", sid);
-  if (sErr) {
-    console.error("admin/sellers row delete failed", { sid, reason: sErr.message });
-    return NextResponse.json({ error: "Satıcı silinərkən xəta baş verdi." }, { status: 500 });
-  }
-
-  if (seller.user_id) {
-    const { error: authErr } = await svc.auth.admin.deleteUser(String(seller.user_id));
-    if (authErr) {
-      console.error("admin/sellers auth delete failed", {
-        sid,
-        userId: String(seller.user_id),
-        reason: authErr.message,
-      });
-      return NextResponse.json(
-        { error: "Satıcı silindi, amma auth hesabı silinmədi." },
-        { status: 500 },
-      );
-    }
+  if (!result.ok) {
+    console.error("admin/sellers purge failed", { sid, ...result });
+    const labels: Record<string, string> = {
+      admin_notifications: "Admin bildirişləri silinərkən xəta.",
+      storage: "Məhsul şəkilləri silinərkən xəta.",
+      products: "Məhsullar silinərkən xəta.",
+      sellers: "Satıcı silinərkən xəta.",
+      auth: "Auth hesabı silinərkən xəta.",
+    };
+    return NextResponse.json(
+      {
+        error: labels[result.step] ?? "Silinmə zamanı xəta baş verdi.",
+        detail: result.message,
+      },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true });

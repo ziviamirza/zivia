@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { adminPurgeSellerCompletely } from "@/lib/admin-purge-seller";
 import { requireAdminApiOr401 } from "@/lib/admin-route-guard";
 import { createServiceSupabaseAdmin } from "@/lib/supabase-service-admin";
 
@@ -10,7 +11,8 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
- * Auth istifadəçisini və ona bağlı satıcı/məhsulları silir (əvvəlcə məhsul və satıcı sətirləri).
+ * Auth istifadəçisini və ona bağlı bütün satıcı məlumatlarını silir
+ * (hər satıcı üçün tam təmizləmə; sonda bir dəfə auth.user).
  */
 export async function DELETE(_req: Request, ctx: Ctx) {
   const deny = await requireAdminApiOr401();
@@ -29,7 +31,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Yanlış istifadəçi id (UUID)." }, { status: 400 });
   }
 
-  const { data: sellers, error: listErr } = await svc
+  const { data: sellerRows, error: listErr } = await svc
     .from("sellers")
     .select("id")
     .eq("user_id", userId);
@@ -39,17 +41,19 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "İstifadəçi əlaqələri yoxlanarkən xəta baş verdi." }, { status: 500 });
   }
 
-  for (const row of sellers ?? []) {
-    const sid = row.id as number;
-    const { error: pErr } = await svc.from("products").delete().eq("seller_id", sid);
-    if (pErr) {
-      console.error("admin/users product cleanup failed", { userId, sid, reason: pErr.message });
-      return NextResponse.json({ error: "İstifadəçi məhsulları silinərkən xəta baş verdi." }, { status: 500 });
-    }
-    const { error: sErr } = await svc.from("sellers").delete().eq("id", sid);
-    if (sErr) {
-      console.error("admin/users seller cleanup failed", { userId, sid, reason: sErr.message });
-      return NextResponse.json({ error: "İstifadəçi satıcısı silinərkən xəta baş verdi." }, { status: 500 });
+  for (const row of sellerRows ?? []) {
+    const sid = Number(row.id);
+    if (!Number.isFinite(sid)) continue;
+    const result = await adminPurgeSellerCompletely(svc, sid, userId, { deleteAuthUser: false });
+    if (!result.ok) {
+      console.error("admin/users purge seller failed", { userId, sid, ...result });
+      return NextResponse.json(
+        {
+          error: `Satıcı (${sid}) silinərkən xəta: ${result.step}`,
+          detail: result.message,
+        },
+        { status: 500 },
+      );
     }
   }
 
