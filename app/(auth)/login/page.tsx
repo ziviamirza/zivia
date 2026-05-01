@@ -104,7 +104,7 @@ export default function LoginPage() {
               Giriş
             </h1>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-[1fr_0.92fr]">
+            <div className="mt-3 md:max-w-md">
               <div className="rounded-2xl border border-[#e1d4be] bg-[#fffcf6] p-3">
                 <label className="mb-1 block text-sm font-medium text-stone-700">
                   E-mail
@@ -129,35 +129,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="zivia-input h-11"
                 />
-              </div>
 
-              <div className="rounded-2xl border border-[#e1d4be] bg-[#fffcf6] p-3">
-                <h2 className="text-center font-display text-3xl text-stone-900 md:text-[2rem]">
-                  Social Giriş
-                </h2>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#d9c9ad] bg-white text-xl text-stone-500"
-                    aria-label="Google ilə giriş"
-                  >
-                    G
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#d9c9ad] bg-white text-xl text-stone-500"
-                    aria-label="Facebook ilə giriş"
-                  >
-                    f
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#d9c9ad] bg-white text-xl text-stone-500"
-                    aria-label="Apple ilə giriş"
-                  >
-                    a
-                  </button>
-                </div>
                 <button
                   type="button"
                   onClick={handleLogin}
@@ -173,7 +145,7 @@ export default function LoginPage() {
                 </div>
                 <Link
                   href="/register"
-                  className="mt-3 app-btn-secondary h-11 w-full justify-center text-base"
+                  className="mt-3 app-btn-secondary flex h-11 w-full items-center justify-center text-base"
                 >
                   Satıcı qeydiyyatı
                 </Link>
