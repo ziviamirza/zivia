@@ -1,10 +1,10 @@
 /**
- * Demo vitrin: 10 təsadüfi görünüşlü satıcı + 40 məhsul.
+ * Demo vitrin: 10 satıcı + 30 məhsul (hər satıcıya 3 məhsul).
  *
- * Tələb: .env.local-də NEXT_PUBLIC_SUPABASE_URL və SUPABASE_SERVICE_ROLE_KEY
- * İşə salma (layihə kökündən): npm run seed:demo
+ * Lokal: .env.local → NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY → npm run seed:demo
+ * GitHub: repo Settings → Secrets → həmin iki dəyər; `main`-ə push olanda workflow avtomatik seed edir.
  *
- * Təkrar işlədəndə əvvəlki `zivia-demo-*` satıcıları və məhsulları təmizləyir.
+ * Təkrar: əvvəlki `zivia-demo-*` satıcı/məhsul təmizlənir, sonra yenidən yazılır.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -249,7 +249,7 @@ async function main() {
   let p = 0;
   for (let si = 0; si < sellersInserted.length; si++) {
     const sellerId = sellersInserted[si].id;
-    for (let j = 0; j < 4; j++) {
+    for (let j = 0; j < 3; j++) {
       const title = PRODUCT_TEMPLATES[p % PRODUCT_TEMPLATES.length];
       const cat = CATEGORY_NAMES[p % CATEGORY_NAMES.length];
       const img = JEWELRY_IMGS[p % JEWELRY_IMGS.length];
@@ -280,7 +280,7 @@ async function main() {
     }
   }
 
-  console.log("\nHazırdır: 10 demo satıcı, 40 məhsul. Ana səhifə və /products yenilə.");
+  console.log("\nHazırdır: 10 demo satıcı, 30 məhsul. Ana səhifə və /products bir neçə dəqiqə ərzində yenilənə bilər (ISR).");
 }
 
 main().catch((e) => {
