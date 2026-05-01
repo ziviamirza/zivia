@@ -258,9 +258,9 @@ export default function Navbar() {
       </header>
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-[120] bg-black/28 backdrop-blur-[1px]">
-          <div className="h-full w-full max-w-[320px] bg-[var(--zivia-warm-white)] p-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
+        <div className="fixed inset-0 z-[120] flex bg-black/28 backdrop-blur-[1px]">
+          <div className="flex h-[100dvh] max-h-[100dvh] w-full max-w-[320px] flex-col bg-[var(--zivia-warm-white)] shadow-2xl">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8dcc8] p-4">
               <div className="flex items-center gap-2.5">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#aa8540] text-[#aa8540]">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -277,7 +277,7 @@ export default function Navbar() {
                 type="button"
                 onClick={() => setMenuOpen(false)}
                 aria-label="close menu"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-stone-500 hover:bg-[#f2eadc]"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-500 hover:bg-[#f2eadc]"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -285,7 +285,7 @@ export default function Navbar() {
               </button>
             </div>
 
-            <nav className="mt-6 space-y-4 text-[#1f1d1b]">
+            <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-4 text-[#1f1d1b] [-webkit-overflow-scrolling:touch]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-600">Kolleksiyalar</p>
                 <div className="mt-1.5 space-y-0.5">
@@ -433,7 +433,7 @@ export default function Navbar() {
               </div>
             </nav>
 
-            <div className="mt-6">
+            <div className="shrink-0 border-t border-[#e8dcc8] bg-[var(--zivia-warm-white)] p-4">
               {signedIn ? (
                 <button
                   type="button"
@@ -441,7 +441,7 @@ export default function Navbar() {
                     setMenuOpen(false);
                     void signOut();
                   }}
-                  className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
                 >
                   Çıxış
                 </button>
@@ -449,7 +449,7 @@ export default function Navbar() {
                 <Link
                   onClick={() => setMenuOpen(false)}
                   href="/login"
-                  className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#ebdfc8] px-4 text-base font-semibold text-[#2c2419]"
                 >
                   Giriş
                 </Link>
@@ -460,7 +460,7 @@ export default function Navbar() {
             type="button"
             aria-label="close overlay"
             onClick={() => setMenuOpen(false)}
-            className="absolute inset-0 -z-10"
+            className="min-h-0 min-w-0 flex-1 cursor-default bg-transparent"
           />
         </div>
       ) : null}
