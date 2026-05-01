@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { deleteProduct } from "@/app/dashboard/actions";
+import { deleteProduct } from "@/app/(vendor)/dashboard/actions";
 
 type Props = {
   productId: number;
