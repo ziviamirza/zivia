@@ -51,6 +51,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     const labels: Record<string, string> = {
       admin_notifications: "Admin bildirişləri silinərkən xəta.",
       storage: "Məhsul şəkilləri silinərkən xəta.",
+      seller_analytics_events: "Analitika qeydləri silinərkən xəta.",
       products: "Məhsullar silinərkən xəta.",
       sellers: "Satıcı silinərkən xəta.",
       auth: "Auth hesabı silinərkən xəta.",

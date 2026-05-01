@@ -16,9 +16,10 @@ export default function AdminDeleteButton({ actionLabel, confirmText, endpoint }
     setBusy(true);
     try {
       const res = await fetch(endpoint, { method: "DELETE", credentials: "same-origin" });
-      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      const json = (await res.json().catch(() => ({}))) as { error?: string; detail?: string };
       if (!res.ok) {
-        window.alert(json.error ?? `Xəta: ${res.status}`);
+        const msg = [json.error, json.detail].filter(Boolean).join("\n\n");
+        window.alert(msg || `Xəta: ${res.status}`);
         return;
       }
       window.location.reload();
