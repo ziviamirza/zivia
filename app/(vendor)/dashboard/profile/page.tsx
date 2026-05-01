@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ensureSellerRowForUser } from "@/lib/ensure-seller-row";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -60,11 +61,26 @@ export default function SellerProfilePage() {
       router.replace("/login");
       return;
     }
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("sellers")
       .select("id, name, description, whatsapp, instagram, tiktok, avatar")
       .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .limit(1)
       .maybeSingle();
+
+    if (!data && !error) {
+      await ensureSellerRowForUser(supabase, user);
+      const again = await supabase
+        .from("sellers")
+        .select("id, name, description, whatsapp, instagram, tiktok, avatar")
+        .eq("user_id", user.id)
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      data = again.data;
+      error = again.error;
+    }
 
     if (error || !data) {
       setSeller(null);

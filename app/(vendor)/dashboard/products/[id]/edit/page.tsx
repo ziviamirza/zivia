@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ensureSellerRowForUser } from "@/lib/ensure-seller-row";
 import { categories } from "@/data/categories";
 import {
   MAX_PRODUCT_GALLERY_IMAGES,
@@ -104,11 +105,25 @@ export default function EditProductPage() {
       return;
     }
 
-    const { data: seller } = await supabase
+    let { data: seller } = await supabase
       .from("sellers")
       .select("id")
       .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .limit(1)
       .maybeSingle();
+
+    if (!seller) {
+      await ensureSellerRowForUser(supabase, user);
+      const again = await supabase
+        .from("sellers")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      seller = again.data;
+    }
 
     if (!seller) {
       setProduct(null);

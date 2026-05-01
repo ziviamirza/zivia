@@ -7,6 +7,7 @@ import {
   productImageObjectPathsForUser,
 } from "@/lib/product-image-storage";
 import { productRowImageUrls } from "@/lib/product-images";
+import { ensureSellerRowForUser } from "@/lib/ensure-seller-row";
 import { createClient } from "@/lib/supabase/server";
 
 export async function deleteProduct(productId: number) {
@@ -19,11 +20,25 @@ export async function deleteProduct(productId: number) {
     redirect("/login");
   }
 
-  const { data: seller } = await supabase
+  let { data: seller } = await supabase
     .from("sellers")
     .select("id")
     .eq("user_id", user.id)
+    .order("id", { ascending: true })
+    .limit(1)
     .maybeSingle();
+
+  if (!seller) {
+    await ensureSellerRowForUser(supabase, user);
+    const again = await supabase
+      .from("sellers")
+      .select("id")
+      .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    seller = again.data;
+  }
 
   if (!seller) {
     return { error: "Satıcı profili tapılmadı." };

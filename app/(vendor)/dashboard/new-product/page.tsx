@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { ensureSellerRowForUser } from "@/lib/ensure-seller-row";
 import { slugifyAz } from "@/lib/slugify";
 import { categories } from "@/data/categories";
 import { MAX_PRODUCT_GALLERY_IMAGES } from "@/lib/product-images";
@@ -187,11 +188,26 @@ export default function NewProductPage() {
       return;
     }
 
-    const { data: seller, error: sellerFetchError } = await supabase
+    let { data: seller, error: sellerFetchError } = await supabase
       .from("sellers")
       .select("*")
       .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .limit(1)
       .maybeSingle();
+
+    if (!seller && !sellerFetchError) {
+      await ensureSellerRowForUser(supabase, user);
+      const again = await supabase
+        .from("sellers")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      seller = again.data;
+      sellerFetchError = again.error;
+    }
 
     if (sellerFetchError) {
       setGeneralError(sellerFetchError.message);

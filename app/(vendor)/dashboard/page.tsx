@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DeleteProductButton } from "@/components/DeleteProductButton";
+import { fetchSellerForDashboard } from "@/lib/ensure-seller-row";
 import { primaryProductImageUrl } from "@/lib/product-images";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,13 +16,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: seller, error: sellerError } = await supabase
-    .from("sellers")
-    .select("id, name, slug, user_id, whatsapp, description, avatar, approval_status, review_note")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { seller, error: sellerError } = await fetchSellerForDashboard(supabase, user);
 
   if (!seller) {
+    const hasBrandMeta = Boolean(String(user.user_metadata?.brand_name ?? "").trim());
     return (
       <main className="min-h-screen bg-white px-4 py-16">
         <div className="mx-auto max-w-5xl">
@@ -32,9 +30,18 @@ export default async function DashboardPage() {
             hesabdırsa, yenidən satıcı qeydiyyatından keçməyə cəhd edin və ya
             dəstəklə əlaqə saxlayın.
           </p>
+          {!hasBrandMeta ? (
+            <p className="mt-3 max-w-xl text-sm text-amber-900/90">
+              Bu hesabda mağaza adı (brend) məlumatı yoxdur — satıcı qeydiyyatı
+              eyni e-poçtla yenidən tamamlanmalı və ya dəstək tərəfindən profil
+              bağlanmalıdır.
+            </p>
+          ) : null}
           {sellerError ? (
             <p className="mt-3 text-sm text-red-700">
-              Müvəqqəti texniki çətinlik ola bilər. Bir az sonra yenidən yoxlayın.
+              Müvəqqəti texniki çətinlik ola bilər. Səhifəni yeniləyin; davam edərsə
+              dəstəklə əlaqə saxlayın.
+              {process.env.NODE_ENV === "development" ? ` (${sellerError.message})` : ""}
             </p>
           ) : null}
         </div>
