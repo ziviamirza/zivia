@@ -188,7 +188,7 @@ export default function Navbar() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    window.location.href = "/?cixis=1";
   }
 
   const giftCategory = encodeURIComponent("Dəstlər");

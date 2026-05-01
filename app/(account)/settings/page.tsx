@@ -62,7 +62,7 @@ export default function SettingsPage() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/?cixis=1");
     router.refresh();
   }
 

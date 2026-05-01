@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif, Outfit } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import SignedOutBanner from "@/components/SignedOutBanner";
 import Link from "next/link";
 import JsonLd from "@/components/JsonLd";
 import { buildSiteJsonLd } from "@/lib/jsonld";
@@ -73,6 +74,7 @@ export default function RootLayout({
         <JsonLd id="zivia-site-jsonld" data={siteJsonLd} />
         <div className="app-shell">
           <Navbar />
+          <SignedOutBanner />
           <main className="flex-1 pb-5">{children}</main>
           <footer className="border-t border-[#e5d7c0] bg-[#f8f2e8] px-4 py-3">
             <div className="flex items-center justify-between text-[11px] text-stone-600">
