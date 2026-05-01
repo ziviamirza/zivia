@@ -11,6 +11,7 @@ type Item = {
 const navItems: Item[] = [
   { href: "/admin", label: "Daxili Baxış" },
   { href: "/admin/sellers", label: "Satıcı idarəetməsi" },
+  { href: "/admin/seller-notifications", label: "Satıcı bildirişləri" },
   { href: "/admin/products", label: "Kataloq" },
   { href: "/admin/orders", label: "Sifarişlər" },
   { href: "/admin/analytics", label: "Analitika" },
