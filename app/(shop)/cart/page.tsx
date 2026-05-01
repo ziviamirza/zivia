@@ -10,6 +10,7 @@ import {
 } from "@/lib/cart-storage";
 import { createClient } from "@/lib/supabase/client";
 import { primaryProductImageUrl } from "@/lib/product-images";
+import { getSupportWhatsAppUrl } from "@/lib/site";
 
 const shippingFee = 0;
 const taxFee = 0;
@@ -103,6 +104,44 @@ export default function CartPage() {
   }, [displayRows]);
 
   const grandTotal = productsTotal + shippingFee + taxFee;
+
+  const whatsappCheckoutHref = useMemo(() => {
+    const okRows = displayRows.filter(
+      (r): r is Extract<RowState, { kind: "ok" }> => r.kind === "ok",
+    );
+    if (!okRows.length) return "";
+
+    const baseUrl =
+      typeof window !== "undefined" ? window.location.origin : "https://zivia.az";
+    const linesText = okRows.map((row, idx) => {
+      const title = row.product.title?.trim() || "Məhsul";
+      const qty = row.line.qty;
+      const unitPrice = Number(row.product.price ?? 0);
+      const lineTotal = unitPrice * qty;
+      const productLink = `${baseUrl}/products/${encodeURIComponent(row.line.slug)}`;
+      const imageLink = row.image ?? "";
+
+      return [
+        `${idx + 1}) ${title}`,
+        `- Say: ${qty}`,
+        `- Qiymət: ${formatAzn(unitPrice)} (cəmi: ${formatAzn(lineTotal)})`,
+        `- Məhsul linki: ${productLink}`,
+        imageLink ? `- Şəkil: ${imageLink}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    });
+
+    const message = [
+      "Salam, səbətimdəki məhsulları sifariş etmək istəyirəm:",
+      "",
+      ...linesText,
+      "",
+      `Sifariş cəmi: ${formatAzn(grandTotal)}`,
+    ].join("\n");
+
+    return getSupportWhatsAppUrl(message);
+  }, [displayRows, grandTotal]);
 
   function increaseQty(slug: string) {
     const cur = readCartLines();
@@ -302,13 +341,24 @@ export default function CartPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            disabled
-            className="app-btn-primary mt-3 w-full cursor-not-allowed justify-center opacity-60"
-          >
-            Ödəniş (tezliklə)
-          </button>
+          {whatsappCheckoutHref ? (
+            <a
+              href={whatsappCheckoutHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="app-btn-primary mt-3 w-full justify-center"
+            >
+              WhatsApp ilə sifarişi tamamla
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="app-btn-primary mt-3 w-full cursor-not-allowed justify-center opacity-60"
+            >
+              Ödəniş üçün məhsul seçin
+            </button>
+          )}
 
           <div className="mt-3 space-y-1 text-center text-xs leading-tight text-stone-800 md:text-sm">
             <p>Səbət brauzerinizdə saxlanılır</p>
