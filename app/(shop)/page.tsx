@@ -131,13 +131,6 @@ export default async function Home() {
           )}
         </div>
       </section>
-
-      <section className="app-surface p-4">
-        <p className="text-sm text-stone-600">
-          Premium marketplace təcrübəsi üçün vitrin tam mobil ölçüdə optimizasiya edildi.
-          Satıcı, məhsul və hesab əməliyyatlarının hamısı eyni işləyir.
-        </p>
-      </section>
     </div>
   );
 }

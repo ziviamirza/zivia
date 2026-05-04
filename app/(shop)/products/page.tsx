@@ -59,7 +59,6 @@ export default async function ProductsPage({
     <div className="space-y-4 px-3 pt-3 md:px-4">
       <section className="app-surface p-3">
         <h1 className="font-display text-2xl text-stone-900">Məhsullar</h1>
-        <p className="mt-1 text-xs text-stone-500">Mobil vitrin siyahısı</p>
 
         <form method="get" action="/products" className="mt-3 space-y-2">
           {category ? <input type="hidden" name="category" value={category} /> : null}
