@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import HomeHeroCarousel from "@/components/HomeHeroCarousel";
+import { getHomeHeroSlidesPublic } from "@/lib/home-hero-slides";
 import ProductCard from "@/components/ProductCard";
 import { SellerCard } from "@/components/SellerCard";
 import { primaryProductImageUrl, productRowImageUrls } from "@/lib/product-images";
@@ -44,6 +45,14 @@ export default async function Home() {
       whatsapp: "",
     })) as Seller[];
 
+  const heroRows = await getHomeHeroSlidesPublic();
+  const heroSlides = heroRows.map((r) => ({
+    id: r.id,
+    src: r.image_url,
+    alt: r.alt_text,
+    linkUrl: r.link_url,
+  }));
+
   const previewsBySellerId = new Map<number, string[]>();
   for (const row of list) {
     const sellerId = Number(row.seller_id);
@@ -58,7 +67,7 @@ export default async function Home() {
 
   return (
     <div className="space-y-6 px-3 pt-3 md:px-4 lg:px-5">
-      <HomeHeroCarousel />
+      <HomeHeroCarousel slides={heroSlides} />
 
       <section id="populyar-saticilar">
         <div className="mb-2 flex items-center justify-between">

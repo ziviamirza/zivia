@@ -2,39 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-/**
- * 5 slayd — hamısı layihədə artıq işlənən Unsplash foto id-ləri.
- * `next/image` + custom loader — yanlış ölçü / 404 riski azalır.
- */
-const HERO_SLIDES = [
-  {
-    id: "slide-1",
-    src: "https://images.unsplash.com/photo-1611652022419-a9419f74343d",
-    alt: "Zinət boyunbağı",
-  },
-  {
-    id: "slide-2",
-    src: "https://images.unsplash.com/photo-1515562140567-58e285261111",
-    alt: "Üzük kolleksiyası",
-  },
-  {
-    id: "slide-3",
-    src: "https://images.unsplash.com/photo-1617038220319-276d3cfab638",
-    alt: "Boyunbağı detalı",
-  },
-  {
-    id: "slide-4",
-    src: "https://images.unsplash.com/photo-1598560917505-59a3ad559071",
-    alt: "Üzük və zərgərlik",
-  },
-  {
-    id: "slide-5",
-    src: "https://images.unsplash.com/photo-1601821765780-754fa98637c1",
-    alt: "Bilərzik",
-  },
-] as const;
+export type HomeHeroSlideView = {
+  id: number;
+  src: string;
+  alt: string;
+  linkUrl?: string | null;
+};
+
+const FALLBACK_SLIDES: HomeHeroSlideView[] = [
+  { id: 1, src: "https://images.unsplash.com/photo-1611652022419-a9419f74343d", alt: "Zinət boyunbağı", linkUrl: "/products" },
+  { id: 2, src: "https://images.unsplash.com/photo-1515562140567-58e285261111", alt: "Üzük kolleksiyası", linkUrl: "/products" },
+  { id: 3, src: "https://images.unsplash.com/photo-1617038220319-276d3cfab638", alt: "Boyunbağı detalı", linkUrl: "/products" },
+  { id: 4, src: "https://images.unsplash.com/photo-1598560917505-59a3ad559071", alt: "Üzük və zərgərlik", linkUrl: "/products" },
+  { id: 5, src: "https://images.unsplash.com/photo-1601821765780-754fa98637c1", alt: "Bilərzik", linkUrl: "/products" },
+];
 
 function scrollThumbClass(active: boolean) {
   return active
@@ -42,10 +25,52 @@ function scrollThumbClass(active: boolean) {
     : "h-1.5 w-1.5 rounded-full bg-white/65 transition-[width,background-color] duration-200 hover:bg-white/85";
 }
 
-export default function HomeHeroCarousel() {
+function ctaHref(raw: string | null | undefined): string {
+  const t = (raw ?? "").trim();
+  if (!t) return "/products";
+  if (t.startsWith("/")) return t.startsWith("//") ? "/products" : t;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `/${t}`;
+}
+
+function HeroCta({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const h = ctaHref(href);
+  if (/^https?:\/\//i.test(h)) {
+    return (
+      <a href={h} className={className} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={h} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+export default function HomeHeroCarousel({ slides }: { slides: HomeHeroSlideView[] }) {
+  const resolved = useMemo(
+    () => (slides.length > 0 ? slides : FALLBACK_SLIDES),
+    [slides],
+  );
+  const count = resolved.length;
+
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const [broken, setBroken] = useState<Record<string, true>>({});
+  const [broken, setBroken] = useState<Record<number, true>>({});
+
+  useEffect(() => {
+    setActive((a) => Math.min(Math.max(0, a), Math.max(0, count - 1)));
+  }, [count]);
 
   const syncFromScroll = useCallback(() => {
     const el = scrollerRef.current;
@@ -53,8 +78,8 @@ export default function HomeHeroCarousel() {
     const w = el.clientWidth;
     if (w < 1) return;
     const i = Math.round(el.scrollLeft / w);
-    setActive(Math.min(HERO_SLIDES.length - 1, Math.max(0, i)));
-  }, []);
+    setActive(Math.min(count - 1, Math.max(0, i)));
+  }, [count]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -73,9 +98,11 @@ export default function HomeHeroCarousel() {
   function goTo(i: number) {
     const el = scrollerRef.current;
     if (!el) return;
-    const clamped = Math.min(HERO_SLIDES.length - 1, Math.max(0, i));
+    const clamped = Math.min(count - 1, Math.max(0, i));
     el.scrollTo({ left: clamped * el.clientWidth, behavior: "smooth" });
   }
+
+  const activeLink = resolved[active]?.linkUrl;
 
   return (
     <section
@@ -97,7 +124,7 @@ export default function HomeHeroCarousel() {
           }
         }}
       >
-        {HERO_SLIDES.map((slide, index) => (
+        {resolved.map((slide, index) => (
           <div
             key={slide.id}
             className="relative h-full min-w-full shrink-0 snap-start select-none bg-gradient-to-br from-stone-300 via-stone-200 to-amber-100/90"
@@ -129,24 +156,24 @@ export default function HomeHeroCarousel() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4 text-white">
         <h1 className="font-display text-[1.9rem] leading-[1.05] md:text-[2.35rem]">Zivia ilə öz stilini tap</h1>
         <p className="mt-1 text-xs text-white/90 md:text-sm">Minlərlə unikal bijuteriya</p>
-        <Link
-          href="/products"
+        <HeroCta
+          href={activeLink ?? "/products"}
           className="pointer-events-auto mt-3 inline-flex rounded-lg bg-[#b08a42] px-4 py-2 text-xs font-medium text-white md:text-sm"
         >
           Kəşf et
-        </Link>
+        </HeroCta>
         <div
           className="pointer-events-auto mt-3 flex items-center justify-start gap-0.5"
           role="tablist"
-          aria-label="Slaydlar — 1–5 arası keçid"
+          aria-label={`Slaydlar — cəmi ${count}`}
         >
-          {HERO_SLIDES.map((slide, i) => (
+          {resolved.map((slide, i) => (
             <button
               key={slide.id}
               type="button"
               role="tab"
               aria-selected={i === active}
-              aria-label={`Slayd ${i + 1} / ${HERO_SLIDES.length}`}
+              aria-label={`Slayd ${i + 1} / ${count}`}
               className="flex min-h-11 min-w-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               onClick={() => goTo(i)}
             >
