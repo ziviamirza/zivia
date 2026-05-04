@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import HomeHeroCarousel from "@/components/HomeHeroCarousel";
 import ProductCard from "@/components/ProductCard";
 import { SellerCard } from "@/components/SellerCard";
 import { primaryProductImageUrl, productRowImageUrls } from "@/lib/product-images";
@@ -57,27 +58,7 @@ export default async function Home() {
 
   return (
     <div className="space-y-6 px-3 pt-3 md:px-4 lg:px-5">
-      <section className="relative overflow-hidden rounded-3xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1000&q=80"
-          alt=""
-          className="h-[210px] w-full object-cover md:h-[250px]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-          <h1 className="font-display text-[1.9rem] leading-[1.05] md:text-[2.35rem]">Zivia ilə öz stilini tap</h1>
-          <p className="mt-1 text-xs text-white/90 md:text-sm">Minlərlə unikal bijuteriya</p>
-          <Link href="/products" className="mt-3 inline-flex rounded-lg bg-[#b08a42] px-4 py-2 text-xs font-medium text-white md:text-sm">
-            Kəşf et
-          </Link>
-          <div className="mt-3 flex items-center gap-1.5">
-            <span className="h-1.5 w-5 rounded-full bg-white" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/65" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/65" />
-          </div>
-        </div>
-      </section>
+      <HomeHeroCarousel />
 
       <section id="populyar-saticilar">
         <div className="mb-2 flex items-center justify-between">
