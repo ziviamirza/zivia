@@ -214,11 +214,7 @@ export default function Navbar() {
           </div>
           <div className="flex items-center gap-2">
             <FavoritesNavButton />
-            {signedIn ? (
-              <div className="hidden sm:block">
-                <SellerNotificationsBell />
-              </div>
-            ) : null}
+            {signedIn ? <SellerNotificationsBell /> : null}
             <IconButton href={signedIn ? "/dashboard" : "/login"} label="profile">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />

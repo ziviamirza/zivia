@@ -17,6 +17,10 @@ export function getSiteUrl(): string {
     }
     return fromEnv.replace(/\/$/, "");
   }
+  /** Brauzerdə (məs. qeydiyyat səhifəsi) — NEXT_PUBLIC olmayanda belə düzgün domen getsin. */
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, "");
+  }
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) {
     return `https://${vercel.replace(/\/$/, "")}`;
