@@ -1,28 +1,38 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/**
+ * 5 slayd — hamısı layihədə artıq işlənən Unsplash foto id-ləri.
+ * `next/image` + custom loader — yanlış ölçü / 404 riski azalır.
+ */
 const HERO_SLIDES = [
   {
-    src: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1600&q=80",
+    id: "slide-1",
+    src: "https://images.unsplash.com/photo-1611652022419-a9419f74343d",
     alt: "Zinət boyunbağı",
   },
   {
-    src: "https://images.unsplash.com/photo-1515562140567-58e285261111?auto=format&fit=crop&w=1600&q=80",
+    id: "slide-2",
+    src: "https://images.unsplash.com/photo-1515562140567-58e285261111",
     alt: "Üzük kolleksiyası",
   },
   {
-    src: "https://images.unsplash.com/photo-1599643478518-a784e5d4f0f8?auto=format&fit=crop&w=1600&q=80",
-    alt: "Qolbaq və bilərzik",
+    id: "slide-3",
+    src: "https://images.unsplash.com/photo-1617038220319-276d3cfab638",
+    alt: "Boyunbağı detalı",
   },
   {
-    src: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1600&q=80",
-    alt: "Sırğalar",
+    id: "slide-4",
+    src: "https://images.unsplash.com/photo-1598560917505-59a3ad559071",
+    alt: "Üzük və zərgərlik",
   },
   {
-    src: "https://images.unsplash.com/photo-1617038260897-41a5fabefd2d?auto=format&fit=crop&w=1600&q=80",
-    alt: "Zərgərlik detalları",
+    id: "slide-5",
+    src: "https://images.unsplash.com/photo-1601821765780-754fa98637c1",
+    alt: "Bilərzik",
   },
 ] as const;
 
@@ -35,6 +45,7 @@ function scrollThumbClass(active: boolean) {
 export default function HomeHeroCarousel() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const [broken, setBroken] = useState<Record<string, true>>({});
 
   const syncFromScroll = useCallback(() => {
     const el = scrollerRef.current;
@@ -86,19 +97,29 @@ export default function HomeHeroCarousel() {
           }
         }}
       >
-        {HERO_SLIDES.map((slide) => (
+        {HERO_SLIDES.map((slide, index) => (
           <div
-            key={slide.src}
-            className="relative h-full min-w-full shrink-0 snap-start select-none"
+            key={slide.id}
+            className="relative h-full min-w-full shrink-0 snap-start select-none bg-gradient-to-br from-stone-300 via-stone-200 to-amber-100/90"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={slide.src}
-              alt={slide.alt}
-              draggable={false}
-              className="h-full w-full object-cover"
-              sizes="100vw"
-            />
+            {broken[slide.id] ? (
+              <div
+                className="absolute inset-0 bg-gradient-to-br from-[#4a3f35] via-[#5c4d3f] to-[#7a6548]"
+                aria-hidden
+              />
+            ) : (
+              <Image
+                src={slide.src}
+                alt={slide.alt}
+                fill
+                draggable={false}
+                className="object-cover"
+                sizes="100vw"
+                priority={index === 0}
+                quality={85}
+                onError={() => setBroken((b) => ({ ...b, [slide.id]: true }))}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -117,11 +138,11 @@ export default function HomeHeroCarousel() {
         <div
           className="pointer-events-auto mt-3 flex items-center justify-start gap-0.5"
           role="tablist"
-          aria-label="Slayd göstəriciləri"
+          aria-label="Slaydlar — 1–5 arası keçid"
         >
-          {HERO_SLIDES.map((_, i) => (
+          {HERO_SLIDES.map((slide, i) => (
             <button
-              key={i}
+              key={slide.id}
               type="button"
               role="tab"
               aria-selected={i === active}
