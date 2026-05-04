@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -53,6 +54,11 @@ function formatTime(iso: string): string {
   return d.toLocaleDateString("az-AZ", { day: "numeric", month: "short" });
 }
 
+function viewportHeight(): number {
+  if (typeof window === "undefined") return 0;
+  return window.visualViewport?.height ?? window.innerHeight;
+}
+
 export default function SellerNotificationsBell() {
   const supabase = createClient();
   const [items, setItems] = useState<Row[]>([]);
@@ -60,6 +66,8 @@ export default function SellerNotificationsBell() {
   const [loading, setLoading] = useState(false);
   const [tableMissing, setTableMissing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     const {
@@ -118,9 +126,60 @@ export default function SellerNotificationsBell() {
     return () => window.clearInterval(id);
   }, [load, tableMissing]);
 
+  const syncPanelPosition = useCallback(() => {
+    const btn = buttonRef.current;
+    const panel = panelRef.current;
+    if (!btn || !panel) return;
+
+    const margin = 10;
+    const maxPanelW = 22 * 16;
+    const r = btn.getBoundingClientRect();
+    const vh = viewportHeight();
+    const vw = typeof window !== "undefined" ? window.innerWidth : 0;
+
+    const width = Math.min(maxPanelW, vw - margin * 2);
+    let left = r.right - width;
+    left = Math.max(margin, Math.min(left, vw - width - margin));
+
+    const top = r.bottom + margin;
+    const maxHeight = Math.max(140, vh - top - margin);
+
+    panel.style.top = `${top}px`;
+    panel.style.left = `${left}px`;
+    panel.style.width = `${width}px`;
+    panel.style.maxHeight = `${maxHeight}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    syncPanelPosition();
+    const ro =
+      typeof ResizeObserver !== "undefined" && buttonRef.current
+        ? new ResizeObserver(() => syncPanelPosition())
+        : null;
+    ro?.observe(buttonRef.current!);
+
+    const onWin = () => syncPanelPosition();
+    window.addEventListener("resize", onWin);
+    window.visualViewport?.addEventListener("resize", onWin);
+    window.visualViewport?.addEventListener("scroll", onWin);
+    window.addEventListener("scroll", onWin, true);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", onWin);
+      window.visualViewport?.removeEventListener("resize", onWin);
+      window.visualViewport?.removeEventListener("scroll", onWin);
+      window.removeEventListener("scroll", onWin, true);
+    };
+  }, [open, syncPanelPosition]);
+
   useEffect(() => {
     function onDoc(e: PointerEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t)) return;
+      if (panelRef.current?.contains(t)) return;
+      setOpen(false);
     }
     if (open) document.addEventListener("pointerdown", onDoc);
     return () => document.removeEventListener("pointerdown", onDoc);
@@ -155,9 +214,112 @@ export default function SellerNotificationsBell() {
     if (!row.read_at) await markRead(row.id);
   }
 
+  const panel =
+    open && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Bildirişlər"
+            className="fixed z-[200] flex min-h-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl ring-1 ring-black/5"
+            style={{ top: 0, left: 0, width: 320 }}
+          >
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-4 py-3">
+              <p className="text-sm font-semibold text-neutral-900">Bildirişlər</p>
+              {unread > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => void markAllRead()}
+                  className="shrink-0 text-xs font-medium text-amber-800 hover:underline"
+                >
+                  Hamısını oxunmuş et
+                </button>
+              ) : null}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              {tableMissing ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-base font-semibold text-neutral-800">Bildirişləriniz yoxdur</p>
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    Bildiriş siyahısı üçün verilənlər bazasında cədvəl lazımdır. SQL Editor-da{" "}
+                    <code className="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">
+                      20260415220000_seller_notifications.sql
+                    </code>{" "}
+                    faylını işə salın.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => retryAfterSetup()}
+                    className="mt-4 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600"
+                  >
+                    Yenidən yoxla
+                  </button>
+                </div>
+              ) : items.length > 0 ? (
+                <ul className="divide-y divide-neutral-100">
+                  {items.map((row) => {
+                    const inner = (
+                      <div
+                        className={`px-4 py-3.5 text-left transition hover:bg-stone-50 ${
+                          row.read_at ? "opacity-80" : "bg-amber-50/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-neutral-900">
+                            {row.title}
+                          </p>
+                          <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+                            {typeLabel(row.type)}
+                          </span>
+                        </div>
+                        {row.body ? (
+                          <p className="mt-1.5 break-words text-xs leading-relaxed text-neutral-600">{row.body}</p>
+                        ) : null}
+                        <p className="mt-2 text-[10px] text-neutral-400">{formatTime(row.created_at)}</p>
+                      </div>
+                    );
+
+                    if (row.href) {
+                      return (
+                        <li key={row.id}>
+                          <Link href={row.href} onClick={() => void onItemClick(row)} className="block">
+                            {inner}
+                          </Link>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={row.id}>
+                        <button type="button" className="block w-full text-left" onClick={() => void onItemClick(row)}>
+                          {inner}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-base font-semibold text-neutral-800">Bildirişləriniz yoxdur</p>
+                  {loading ? (
+                    <p className="mt-2 text-xs text-neutral-400">Yüklənir…</p>
+                  ) : (
+                    <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                      Yeni məhsul və ya digər hadisələr olanda burada görünəcək.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div ref={wrapRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => {
           setOpen((wasOpen) => {
@@ -174,6 +336,7 @@ export default function SellerNotificationsBell() {
         } ${open && !tableMissing ? "ring-2 ring-amber-300/60 ring-offset-1 ring-offset-white" : ""}`}
         aria-label="Bildirişlər"
         aria-expanded={open}
+        aria-haspopup="dialog"
       >
         <span className="sr-only">Bildirişlər</span>
         <svg
@@ -201,105 +364,7 @@ export default function SellerNotificationsBell() {
           </span>
         ) : null}
       </button>
-
-      {open ? (
-        <div className="absolute right-0 z-[100] mt-2 w-[min(100vw-2rem,22rem)] rounded-2xl border border-neutral-200 bg-white py-2 shadow-xl">
-          <div className="flex items-center justify-between border-b border-neutral-100 px-4 pb-2">
-            <p className="text-sm font-semibold text-neutral-900">Bildirişlər</p>
-            {unread > 0 ? (
-              <button
-                type="button"
-                onClick={() => void markAllRead()}
-                className="text-xs font-medium text-amber-800 hover:underline"
-              >
-                Hamısını oxunmuş et
-              </button>
-            ) : null}
-          </div>
-          <div className="max-h-[min(70vh,24rem)] overflow-y-auto">
-            {tableMissing ? (
-              <div className="px-4 py-10 text-center">
-                <p className="text-base font-semibold text-neutral-800">
-                  Bildirişləriniz yoxdur
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                  Bildiriş siyahısı üçün verilənlər bazasında cədvəl lazımdır.
-                  SQL Editor-da{" "}
-                  <code className="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">
-                    20260415220000_seller_notifications.sql
-                  </code>{" "}
-                  faylını işə salın.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => retryAfterSetup()}
-                  className="mt-4 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600"
-                >
-                  Yenidən yoxla
-                </button>
-              </div>
-            ) : items.length > 0 ? (
-              <ul className="divide-y divide-neutral-100">
-                {items.map((row) => {
-                  const inner = (
-                    <div
-                      className={`px-4 py-3 text-left transition hover:bg-stone-50 ${
-                        row.read_at ? "opacity-80" : "bg-amber-50/40"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-neutral-900">{row.title}</p>
-                        <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
-                          {typeLabel(row.type)}
-                        </span>
-                      </div>
-                      {row.body ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-neutral-600">{row.body}</p>
-                      ) : null}
-                      <p className="mt-1 text-[10px] text-neutral-400">{formatTime(row.created_at)}</p>
-                    </div>
-                  );
-
-                  if (row.href) {
-                    return (
-                      <li key={row.id}>
-                        <Link
-                          href={row.href}
-                          onClick={() => void onItemClick(row)}
-                          className="block"
-                        >
-                          {inner}
-                        </Link>
-                      </li>
-                    );
-                  }
-
-                  return (
-                    <li key={row.id}>
-                      <button type="button" className="block w-full" onClick={() => void onItemClick(row)}>
-                        {inner}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <div className="px-4 py-10 text-center">
-                <p className="text-base font-semibold text-neutral-800">
-                  Bildirişləriniz yoxdur
-                </p>
-                {loading ? (
-                  <p className="mt-2 text-xs text-neutral-400">Yüklənir…</p>
-                ) : (
-                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Yeni məhsul və ya digər hadisələr olanda burada görünəcək.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
+      {panel}
     </div>
   );
 }
